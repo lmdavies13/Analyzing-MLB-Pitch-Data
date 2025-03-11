@@ -1,0 +1,53 @@
+---
+title: "Analyzing MLB Pitch Trends"
+format: html
+editor: visual
+---
+
+In this project we will analyze MLB pitch data from 2015-2018 to view trends in pitching performance using statistical analysis, predictive modeling, and classification techniques. Our goal is to develop models that predict variables like pitch speed while also implementing classification models to determine pitch type.This project will involve data cleaning, visualization, and model evaluation.
+
+We will be using a dataset published on Kaggle titled “MLB Pitch Data (2015-2018),” which contains 8 different tables with information on pitches, at-bats, games, and players. Our focus will primarily be on the “pitches” table, which includes 2,867,154 pitch observations with 40 different attributes describing various aspects of each pitch. While most of the features are continuous variables measuring aspects like speed and rotation, categorical features such as pitch type provide opportunities for classification modeling. The dataset contains noise, including outlier pitches, missing values, and irrelevant features, which will require preprocessing before analysis. By leveraging this data, we aim to build predictive models to analyze pitch characteristics and gain deeper insights into pitching trends.
+
+## Load the CSV
+
+```{r}
+library(tidyverse)
+
+data_file <- "pitches.csv"
+
+pitch_df <- read_csv(data_file)
+```
+
+Print the size of each table
+
+```{r}
+dim(pitch_df)
+```
+
+## Looking into the Pitch Table
+
+Take a look at the features
+
+```{r}
+str(pitch_df)
+```
+
+Check the number of NAs in each column
+
+```{r}
+colSums(is.na(pitch_df))
+```
+
+Lets look and see what the percentage of NAs is per column
+
+```{r}
+colMeans(is.na(pitch_df)) * 100  
+```
+
+Due to the percentage of missing values being so small in the dataset, we will just remove them all without further investigation
+
+```{r}
+na_rows <- apply(is.na(pitch_df), 1, any)
+pitch_df <- pitch_df[!na_rows, ]
+sum(is.na(pitch_df))
+```

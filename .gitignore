@@ -2,5 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
-pitches.csv
+*.Rproj
 pitches.csv

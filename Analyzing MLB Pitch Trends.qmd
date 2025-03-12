@@ -51,3 +51,115 @@ na_rows <- apply(is.na(pitch_df), 1, any)
 pitch_df <- pitch_df[!na_rows, ]
 sum(is.na(pitch_df))
 ```
+
+EDA
+
+```{r}
+summary(pitch_df)
+```
+
+Lets look at the categorical features and check their value counts
+
+```{r}
+table(pitch_df$pitch_type)
+```
+
+-   **AB** = Automatic Ball (e.g., pitch-clock violation, or other “auto ball” call)
+
+-   **CH** = Changeup
+
+-   **CU** = Curveball
+
+-   **EP** = Eephus
+
+-   **FA** = Fastball (general fastball label)
+
+-   **FC** = Cutter
+
+-   **FF** = Four-Seam Fastball
+
+-   **FO** = Forkball
+
+-   **FS** = Split-Finger Fastball (Splitter)
+
+-   **FT** = Two-Seam Fastball
+
+-   **IN** = Intentional Ball (Intentionally thrown outside for a walk)
+
+-   **KC** = Knuckle Curve
+
+-   **KN** = Knuckleball
+
+-   **PO** = Pitch-Out
+
+-   **SC** = Screwball
+
+-   **SI** = Sinker
+
+-   **SL** = Slider
+
+-   **UN** = Unknown (classification software couldn’t assign a type)
+
+```{r}
+table(pitch_df$type)
+```
+
+```{r}
+table(pitch_df$code)
+```
+
+## Visualize Outliers
+
+Pitch Speed Distribution by Pitch Type
+
+```{r}
+library(ggplot2)
+
+ggplot(pitch_df, aes(x=pitch_type, y= start_speed)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Pitch Speed Distribution by Pitch Type")
+```
+
+Distribution of Pitch Types
+
+```{r}
+ggplot(pitch_df, aes(x = pitch_type)) +
+  geom_bar(fill = "steelblue") +
+  theme_minimal() +
+  labs(title = "Frequency of Different Pitch Types")
+```
+
+Distribution of Pitch Speeds
+
+```{r}
+ggplot(pitch_df, aes(x = start_speed)) +
+  geom_density(fill = "blue", alpha = 0.5) +
+  theme_minimal() +
+  labs(title = "Density Plot of Pitch Speeds", x = "Pitch Speed (mph)", y = "Density")
+```
+
+Outliers in Pitch Speed (start)
+
+```{r}
+ggplot(pitch_df, aes(y = start_speed)) +
+  geom_boxplot(fill = "lightblue") +
+  theme_minimal() +
+  labs(title = "Boxplot of Pitch Speeds", y = "Pitch Speed (mph)")
+```
+
+Histograms for pitch speed, and spin rate
+
+```{r}
+ggplot(pitch_df, aes(x = start_speed)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Distribution of Pitch Speeds", x = "Pitch Speed (mph)", y = "Count")
+
+ggplot(pitch_df, aes(x = spin_rate)) +
+  geom_histogram(binwidth = 50, fill = "darkorange", color = "black") +
+  theme_minimal() +
+  labs(title = "Distribution of Spin Rate", x = "Spin Rate (rpm)", y = "Count")
+```
+
+## Correlation Analysis

@@ -15,8 +15,8 @@ We will be using a dataset published on Kaggle titled “MLB Pitch Data (2015-20
 First install any packages we will be using
 
 ```{r}
-install.packages("corrplot")
-install.packages("tidyverse")
+install.packages("corrplot", repos = "https://cloud.r-project.org")
+install.packages("tidyverse", repos = "https://cloud.r-project.org")
 ```
 
 ```{r}

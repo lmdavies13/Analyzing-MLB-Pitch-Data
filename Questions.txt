@@ -5,3 +5,9 @@ How does spin rate affect pitch outcome?
 Do certain pitch types produce certain pitching events (des).
 
 What is the most common pitch types used in different situations? (Count)
+
+Do certain pitch tpyes lead to more "nasty" pitches, and what features most influence nastiness?
+
+Does pitch effectiveness vary when runners are on base?
+
+How consistent are pitch characteristic within a putch type?

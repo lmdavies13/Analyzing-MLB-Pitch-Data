@@ -76,6 +76,8 @@ zone → The strike zone region the pitch crossed (based on MLB zones).
 
 ### Zones 11-14 These zones represent pitches outside the strike zone, considered balls.
 
+![image](https://github.com/user-attachments/assets/ecfb2b0a-aeb6-48bf-8fb1-2ec30516d414)
+
 ### code → Records the result of the pitch (see dataset description for code meanings).
 
 ### type → Simplified pitch result:

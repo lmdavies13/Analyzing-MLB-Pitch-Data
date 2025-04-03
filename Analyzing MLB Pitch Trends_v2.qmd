@@ -10,9 +10,11 @@ In this project we will analyze MLB pitch data from 2015-2018 to view trends in 
 
 We will be using a dataset published on Kaggle titled “MLB Pitch Data (2015-2018),” which contains 8 different tables with information on pitches, at-bats, games, and players. Our focus will primarily be on the “pitches” table, which includes 2,867,154 pitch observations with 40 different attributes describing various aspects of each pitch. While most of the features are continuous variables measuring aspects like speed and rotation, categorical features such as pitch type provide opportunities for classification modeling. The dataset contains noise, including outlier pitches, missing values, and irrelevant features, which will require preprocessing before analysis. By leveraging this data, we aim to build predictive models to analyze pitch characteristics and gain deeper insights into pitching trends.
 
-# 1. Load the Dataset & Inspect Structure
+# Week 1: Load the Dataset & Inspect Structure
 
-## 1.1 Load the CSV - First install any packages we will be using
+## 1.1 Load the CSV
+
+### First install any packages we will be using:
 
 ```{r}
 install.packages("corrplot", repos = "https://cloud.r-project.org")
@@ -43,7 +45,7 @@ glimpse(pitch_df)
 pitch_df %>% distinct() %>% count()
 ```
 
-## Looking into the Pitch Table
+### Looking into the Pitch Table:
 
 Print the size of each table
 
@@ -77,17 +79,23 @@ table(pitch_df$type)
 table(pitch_df$code)
 ```
 
-# 1.2 Identify the Questions the Analysis Aims to Answer:
+## 1.2 Identify the Questions the Analysis Aims to Answer
 
 -   How does pitch speed vary across different pitch types?
 
 -   How does spin rate affect pitch outcome?
 
--   Do certain pitches produce certain pitching events (des)?
+-   Do certain pitch types produce certain pitching events (des).
 
--   What is the most common pitch types used in different situations?
+-   What is the most common pitch types used in different situations? (Count)
 
-# 1.3 Compute Summary Statistics & Generate Basic Visualizations
+-   Do certain pitch tpyes lead to more "nasty" pitches, and what features most influence nastiness?
+
+-   Does pitch effectiveness vary when runners are on base?
+
+-   How consistent are pitch characteristic within a putch type?
+
+## 1.3 Compute Summary Statistics & Generate Basic Visualizations
 
 ```{r}
 # Summary Statistics for key numeric columns
@@ -138,7 +146,7 @@ ggplot(pitch_df, aes(x = spin_rate)) +
   labs(title = "Distribution of Spin Rate", x = "Spin Rate (rpm)", y = "Count")
 ```
 
-# 1. 4 Handling Missing Data
+## 1.4 Handling Missing Data
 
 Check for missing values: find the NA's in each column
 
@@ -156,7 +164,7 @@ Lets look and see what the percentage of NAs is per column
 colMeans(is.na(pitch_df)) * 100
 ```
 
-# Deciding how to handle these:
+### Deciding how to handle these:
 
 Due to the percentage of missing values being so small in the dataset, we will just remove them all without further investigation
 
@@ -167,7 +175,7 @@ pitch_df <- pitch_df[!na_rows, ]
 sum(is.na(pitch_df))
 ```
 
-# 1.5 Identify & Handling Outliers
+## 1.5 Identify & Handling Outliers
 
 Outliers in Pitch Speed (start)
 
@@ -197,9 +205,9 @@ ggplot(pitch_df, aes(y = start_speed)) +
 
 ```
 
-# 1.6 Normalize or Scale Numerical Features (If Needed) - NO?
+## 1.6 Normalize or Scale Numerical Features (If Needed) - NO?
 
-## Week :2/3 Correlation Analysis
+### Week :2/3 Correlation Analysis
 
 We will create a correlation matrix among all numeric variables
 

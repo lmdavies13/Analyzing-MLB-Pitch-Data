@@ -1,0 +1,379 @@
+---
+title: "Analyzing MLB Pitch Trends"
+format: html
+editor: visual
+---
+
+Run 'quarto render 'Analyzing MLB Pitch Trends.qmd' --output-dir docs' to render docs
+
+In this project we will analyze MLB pitch data from 2015-2018 to view trends in pitching performance using statistical analysis, predictive modeling, and classification techniques. Our goal is to develop models that predict variables like pitch speed while also implementing classification models to determine pitch type.This project will involve data cleaning, visualization, and model evaluation.
+
+We will be using a dataset published on Kaggle titled “MLB Pitch Data (2015-2018),” which contains 8 different tables with information on pitches, at-bats, games, and players. Our focus will primarily be on the “pitches” table, which includes 2,867,154 pitch observations with 40 different attributes describing various aspects of each pitch. While most of the features are continuous variables measuring aspects like speed and rotation, categorical features such as pitch type provide opportunities for classification modeling. The dataset contains noise, including outlier pitches, missing values, and irrelevant features, which will require preprocessing before analysis. By leveraging this data, we aim to build predictive models to analyze pitch characteristics and gain deeper insights into pitching trends.
+
+# 1. Load the Dataset & Inspect Structure
+
+## 1.1 Load the CSV - First install any packages we will be using
+
+```{r}
+install.packages("corrplot", repos = "https://cloud.r-project.org")
+install.packages("tidyverse", repos = "https://cloud.r-project.org")
+```
+
+#Load necessary libraries
+
+#Read the dataset (CSV Format)
+
+```{r}
+library(tidyverse)
+
+data_file <- "C:/Users/OWNER/OneDrive - SUNY Brockport/Data Analysis/pitches.csv"
+
+pitch_df <- read_csv(data_file)
+```
+
+#Check the structure of the dataset
+
+```{r}
+glimpse(pitch_df)
+```
+
+#Check for duplicates (if any)
+
+```{r}
+pitch_df %>% distinct() %>% count()
+```
+
+## Looking into the Pitch Table
+
+Print the size of each table
+
+```{r}
+dim(pitch_df)
+```
+
+Take a look at the features
+
+```{r}
+str(pitch_df)
+```
+
+**Pitch Location & Movement**
+
+-   **px** → x-location as pitch crosses the plate (X=0 means right down the middle).
+
+-   **pz** → z-location as pitch crosses the plate (Z=0 means the ground).
+
+-   **pfx_x** → Horizontal movement relative to a straight-line path (in inches).
+
+-   **pfx_z** → Vertical movement relative to a straight-line path (in inches).
+
+**Pitch Speed & Spin**
+
+-   **start_speed** → Speed of the pitch just as it's thrown. (MPH?)
+
+-   **end_speed** → Speed of the pitch when it reaches the plate. (MPH?)
+
+-   **spin_rate** → The pitch's spin rate, measured in RPM (Revolutions Per Minute).
+
+-   **spin_dir** → Direction in which the pitch is spinning, measured in degrees.
+
+**Pitch Break & Acceleration**
+
+-   **break_angle** → The angle at which the pitch breaks (measured in degrees).
+
+-   **break_length** → The total distance the pitch moves due to breaking action (in inches).
+
+-   **break_y** → The point along the y-axis where the pitch starts to break.
+
+-   **ax** → Acceleration of the ball in the x-direction (ft/s²).
+
+-   **ay** → Acceleration of the ball in the y-direction (ft/s²).
+
+-   **az** → Acceleration of the ball in the z-direction (ft/s²).
+
+**Strike Zone Boundaries**
+
+-   **sz_bot** → Bottom of the batter’s strike zone (in feet).
+
+-   **sz_top** → Top of the batter’s strike zone (in feet).
+
+**Pitch Classification & Confidence**
+
+-   **type_confidence** → Confidence in pitch classification (sometimes goes up to 2).
+
+-   **pitch_type** → Type of pitch (e.g., FF = Four-Seam Fastball, SL = Slider).
+
+**Velocity Components (Initial Conditions of the Pitch)**
+
+-   **vx0** → Initial velocity of the pitch in the x-direction (ft/s).
+
+-   **vy0** → Initial velocity of the pitch in the y-direction (ft/s).
+
+-   **vz0** → Initial velocity of the pitch in the z-direction (ft/s).
+
+-   **x0** → Initial x-position of the pitch at release (ft).
+
+-   **y0** → Initial y-position of the pitch at release (ft).
+
+-   **z0** → Initial z-position of the pitch at release (ft).
+
+**Game Context & Results**
+
+-   **x** → x-location of the pitch at the plate (similar to px).
+
+-   **nasty** → A score representing how difficult the pitch was to hit (higher = harder).
+
+-   **zone** → The strike zone region the pitch crossed (based on MLB zones).
+
+    -   **Zones 1-9** Represent the area within the strike zone, encompassing the area over home plate between the batter's knees and the midpoint between their shoulders and the top of their uniform pants.
+
+    -   **Zones 11-14** These zones represent pitches outside the strike zone, considered balls.
+
+        ![](data:image/png;base64,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)
+
+-   **code** → Records the result of the pitch (see dataset description for code meanings).
+
+-   **type** → Simplified pitch result:
+
+    -   "S" = Strike
+
+    -   "B" = Ball
+
+    -   "X" = In-play event (hit, out, etc.).
+
+**Game and At-Bat Information**
+
+-   **event_num** → Event number (useful for identifying game sequences like ejections).
+
+-   **b_score** → Batter’s team score at the time of the pitch.
+
+-   **ab_id** → At-bat ID (links with atbats.csv).
+
+-   **b_count** → Number of balls in the current count.
+
+-   **s_count** → Number of strikes in the current count.
+
+-   **outs** → Number of outs (before pitch is thrown).
+
+-   **pitch_num** → Pitch number within the current at-bat.
+
+**Base Runners (On-Base Situation)**
+
+-   **on_1b** → True if a runner is on first base, False if it is empty.
+
+-   **on_2b** → True if a runner is on second base, False if it is empty.
+
+-   **on_3b** → True is a runner is on third base, False if it is empty.
+
+```{r}
+summary(pitch_df)
+```
+
+EDA ( Exploratory Data Analysis)
+
+Lets look at the categorical features and check their value counts
+
+```{r}
+table(pitch_df$pitch_type)
+```
+
+-   **Fastballs (High-Speed Pitches)**
+
+    1.  **FA (Fastball - General)** – A basic fastball; high velocity, minimal movement.
+
+    2.  **FF (Four-Seam Fastball)** – The fastest pitch; minimal movement, straight trajectory.
+
+    3.  **FT (Two-Seam Fastball)** – Slight sinking/tailing movement; slower than four-seam.
+
+    4.  **FC (Cutter)** – Faster than a slider but breaks slightly away from the batter.
+
+    5.  **SI (Sinker)** – Similar to a two-seamer but drops more sharply.
+
+    6.  **FS (Splitter)** – Looks like a fastball but drops sharply as it reaches the plate.
+
+    **Breaking Balls (Pitches with Movement)**
+
+    7.  **CU (Curveball)** – A slower pitch with a sharp downward break.
+
+    8.  **SL (Slider)** – Faster than a curveball, with a sharp horizontal break.
+
+    9.  **KC (Knuckle Curve)** – A mix between a curveball and knuckleball, with unpredictable movement.
+
+    10. **SC (Screwball)** – Opposite break of a curveball; breaks toward same-side batters.
+
+    **Off-Speed Pitches (Slower, Deceptive Pitches)**
+
+    11. **CH (Changeup)** – Thrown like a fastball but slower, deceiving batters.
+
+    12. **EP (Eephus)** – Extremely slow, high-arcing pitch meant to confuse hitters.
+
+    **Rare/Trick Pitches**
+
+    13. **KN (Knuckleball)** – Thrown with minimal spin, causing erratic movement.
+
+    14. **FO (Forkball)** – Similar to a splitter but even slower with sharper drop.
+
+    **Situational Pitches**
+
+    15. **IN (Intentional Ball)** – Thrown outside on purpose to walk a batter.
+
+    16. **PO (Pitch-Out)** – Thrown intentionally high/outside to prevent a stolen base.
+
+    17. **AB (Automatic Ball)** – Given due to a rule violation (e.g., pitch-clock violation).
+
+    18. **UN (Unknown)** – Couldn’t be classified by tracking software.
+
+```{r}
+table(pitch_df$type)
+```
+
+```{r}
+table(pitch_df$code)
+```
+
+# 1.2 Identify the Questions the Analysis Aims to Answer:
+
+-   How does pitch speed vary across different pitch types?
+
+-   How does spin rate affect pitch outcome?
+
+-   Do certain pitches produce certain pitching events (des)?
+
+-   What is the most common pitch types used in different situations?
+
+# 1.3 Compute Summary Statistics & Generate Basic Visualizations
+
+```{r}
+# Summary Statistics for key numeric columns
+summary(pitch_df$spin_rate)
+summary(pitch_df$start_speed)
+```
+
+Pitch Speed Distribution by Pitch Type
+
+```{r}
+library(ggplot2)
+
+ggplot(pitch_df, aes(x=pitch_type, y= start_speed)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Pitch Speed Distribution by Pitch Type")
+```
+
+Distribution of Pitch Types
+
+```{r}
+ggplot(pitch_df, aes(x = pitch_type)) +
+  geom_bar(fill = "steelblue") +
+  theme_minimal() +
+  labs(title = "Frequency of Different Pitch Types")
+```
+
+Distribution of Pitch Speeds
+
+```{r}
+ggplot(pitch_df, aes(x = start_speed)) +
+  geom_density(fill = "blue", alpha = 0.5) +
+  theme_minimal() +
+  labs(title = "Density Plot of Pitch Speeds", x = "Pitch Speed (mph)", y = "Density")
+```
+
+Histograms for pitch speed, and spin rate
+
+```{r}
+ggplot(pitch_df, aes(x = start_speed)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Distribution of Pitch Speeds", x = "Pitch Speed (mph)", y = "Count")
+
+ggplot(pitch_df, aes(x = spin_rate)) +
+  geom_histogram(binwidth = 50, fill = "darkorange", color = "black") +
+  theme_minimal() +
+  labs(title = "Distribution of Spin Rate", x = "Spin Rate (rpm)", y = "Count")
+```
+
+# 1. 4 Handling Missing Data
+
+Check for missing values: find the NA's in each column
+
+Check the number of NAs in each column
+
+```{r}
+# check for missing values
+colSums(is.na(pitch_df))
+```
+
+Lets look and see what the percentage of NAs is per column
+
+```{r}
+# Check for the percentage of missing values 
+colMeans(is.na(pitch_df)) * 100
+```
+
+# Deciding how to handle these:
+
+Due to the percentage of missing values being so small in the dataset, we will just remove them all without further investigation
+
+```{r}
+# Remove rows with missing values 
+na_rows <- apply(is.na(pitch_df), 1, any)
+pitch_df <- pitch_df[!na_rows, ]
+sum(is.na(pitch_df))
+```
+
+# 1.5 Identify & Handling Outliers
+
+Outliers in Pitch Speed (start)
+
+```{r}
+ggplot(pitch_df, aes(y = start_speed)) +
+  geom_boxplot(fill = "lightblue") +
+  theme_minimal() +
+  labs(title = "Boxplot of Pitch Speeds", y = "Pitch Speed (mph)")
+```
+
+(Ignore for the moment)
+
+```{r}
+#Detect outliers using IQR method
+
+#Q1 <- quantile(pitch_df$start_speed, 0.25, na.rm = TRUE)
+#Q3 <- quantile(pitch_df$start_speed, 0.75, na.rm = TRUE) IQR <- #Q3 - Q1
+
+#Define lower and upper bounds
+
+#lower_bound <- Q1 - 1.5 * IQR upper_bound <- Q3 + 1.5 * IQR
+
+#Filter out extreme outliers
+
+#pitch_df_clean <- pitch_df %>% filter(start_speed >= lower_bound & start_speed <= upper_bound)
+
+
+```
+
+# 1.6 Normalize or Scale Numerical Features (If Needed) - NO?
+
+## Week :2/3 Correlation Analysis
+
+We will create a correlation matrix among all numeric variables
+
+```{r}
+library(corrplot)
+
+numeric_vars <- sapply(pitch_df, is.numeric)
+numeric_data <- pitch_df[, numeric_vars]
+
+corr_mat <- cor(numeric_data)
+
+corrplot(
+  corr_mat,
+  method = "circle",
+  type = "upper",
+  order = "hclust", #hierachical clustering of vars
+  tl.col = "black", #text color
+  tl.cex = 0.7, # text size
+  tl.srt = 45, #rotation
+  col = colorRampPalette(c("navy", "white", "firebrick3"))(200) #Set a palette
+)
+  
+```

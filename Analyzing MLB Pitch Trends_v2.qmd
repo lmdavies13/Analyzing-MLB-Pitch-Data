@@ -156,37 +156,67 @@ glimpse(pitch_df)
 
 -   We can see the Column names and its data types
 
-## 1.3 Categorizing Dataset Attributes
+## 1.3 Categorizing Dataset Attributes (This is not completley finished)
 
 -   Categorical:
 
-    -    (Nominal)
+    -    Zone(Ordinal)
 
-    -   (Nominal)
+    -   Code ()
 
-    -   (Ordinal)
+    -   Type ()
 
-    -   (Nominal)
+    -   Pitch_type ()
 
-    -   Nominal)
+    -   event_num ()
 
-    -    (Nominal)
+    -   ab_id ()
+
+    -   on_1b
+
+    -   on_2b ()
+
+    -   on_3b ()
 
 -   Continuous
 
-    -   Ratio)
+    -   b_score ()
 
-    -    (Interval)
+    -   start_speed ()
 
-    -    (Ratio)
+    -   end_speed ()
 
-    -    (Interval)
+    -    spin_rate
 
-    -    (Ratio)
+    -   spin_dir
 
-    -    (Ratio)
+    -   break_angle
 
-    -    (Ratio)
+    -   break_length
+
+    -   break_y
+
+    -   ax
+
+    -   ay
+
+    -   az
+
+    -   sz_bot
+
+    -   sz_top
+
+    -   type_confidence
+
+    -   vx0,vy0,vz0
+
+    -   x0, y0, z0
+
+    -   x, y,
+
+    -   pfx_x, pfx_z
+
+    -   nasty
 
 ## 1.2 Identify the Questions the Analysis Aims to Answer:
 
@@ -198,7 +228,13 @@ glimpse(pitch_df)
 
 -   What is the most common pitch types used in different situations?
 
--   
+-   Do certain pitch tpyes lead to more "nasty" pitches, and what features most influence nastiness?
+
+-   Does pitch effectiveness vary when runners are on base?
+
+-   How consistent are pitch characteristic within a pitch type?
+
+-   Do certain pitchs (types) consitently stay in certain zones?
 
 ## 0.0 Understanding variables – Handling Missing Values(Maybe move this to section 1.4)
 
@@ -506,3 +542,33 @@ This measures **how much the pitch slows down**, which can indicate pitch effect
 ## Normalization, encoding, categorical variables. 
 
 # 2.6 Study the findings and refine the project direction is needed. 
+
+# Week 4: Predictive Modeling
+
+4.1 Split the data into training and testing sets
+
+4.2 Implement Simple predictive models (linear regression for continuous outcomes, logistic regression for classifications) as a baseline
+
+4.3 Experiment with a variety of models (desision trees, random forests, SVM) depending on the projects goals.
+
+4.4 Train models on the training set and validate usingn the validation set.
+
+Week 5: Model Evaluation & Refinement
+
+5.1 Evaluate models using appr. metrics
+
+5.2 Optimize the best-performing models with grid search or other tuning methods
+
+5.3 Develop clear visualizations of model performance and key insights.
+
+Week 6: Automation & Reporting:
+
+6.1 Use quarto to creat a dynamic, reproducible report summarizing the project findings
+
+6.2 Build interactive Shiny app showcasing the dashboard and prediction
+
+Week 7: Presentation & Final Delivery
+
+7.1 Finalize/Compile
+
+7.2 Prepare presentation

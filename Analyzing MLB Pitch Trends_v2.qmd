@@ -438,7 +438,7 @@ ggplot(pitch_df, aes(y = start_speed)) +
 
 # 1.6 Normalize or Scale Numerical Features (If Needed) - NO?
 
-# Week: 2-3 EDA
+# Week: 2&3 EDA
 
 # 2.1 Performed EDA: 
 
@@ -553,7 +553,7 @@ This measures **how much the pitch slows down**, which can indicate pitch effect
 
 4.4 Train models on the training set and validate usingn the validation set.
 
-Week 5: Model Evaluation & Refinement
+# Week 5: Model Evaluation & Refinement
 
 5.1 Evaluate models using appr. metrics
 
@@ -561,13 +561,13 @@ Week 5: Model Evaluation & Refinement
 
 5.3 Develop clear visualizations of model performance and key insights.
 
-Week 6: Automation & Reporting:
+# Week 6: Automation & Reporting: 
 
 6.1 Use quarto to creat a dynamic, reproducible report summarizing the project findings
 
 6.2 Build interactive Shiny app showcasing the dashboard and prediction
 
-Week 7: Presentation & Final Delivery
+# Week 7: Presentation  & Final Delivery
 
 7.1 Finalize/Compile
 

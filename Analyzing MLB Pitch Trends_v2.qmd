@@ -479,6 +479,31 @@ corrplot(
 
 -    Helps in **feature selection** for later predictive modeling.
 
+### 2.2.1 Scatter Plot: Pitch Type vs. Zone
+
+-   This will help show which pitches are commonly thrown into specific Zones ( Zones 1-9 are the MLB standard strike zone)
+
+    ```{r}
+
+    ggplot(pitch_df, aes(x = factor(zone), fill = pitch_type)) +
+      geom_bar(position = "dodge") +
+      labs(title = "Pitch Type by Strike Zone",
+           x = "Strike Zone",
+           y = "Count of Pitches") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    ```
+
+What this shows:
+
+-   Which pitch types are thrown into which zones.
+
+<!-- -->
+
+-   Whether certain pitches are aimed more inside/outside or high/low.
+
+### Bar Plot: Type(B, S, X) vs. Pitch_Type
+
 ### 2.2.2 Identify trends using scatterplots - check how spin rate affects pitch speed and how break length impacts movement
 
 a\) Spin Rate vs. Start Speed

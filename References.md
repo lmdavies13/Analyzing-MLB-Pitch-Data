@@ -80,6 +80,42 @@ zone → The strike zone region the pitch crossed (based on MLB zones).
 
 ### code → Records the result of the pitch (see dataset description for code meanings).
 
+B - Ball
+
+*B - Ball in dirt
+
+S - Swinging Strike
+
+C - Called Strike
+
+F - Foul
+
+T - Foul Tip
+
+L - Foul Bunt
+
+I - Intentional Ball
+
+W - Swinging Strike (Blocked)
+
+M - Missed Bunt
+
+P - Pitchout
+
+Q - Swinging pitchout
+
+R - Foul pitchout
+
+Values that only occur on last pitch of at-bat:
+
+X - In play, out(s)
+
+D - In play, no out
+
+E - In play, runs
+
+H - Hit by pitch
+
 ### type → Simplified pitch result:
 
 "S" = Strike

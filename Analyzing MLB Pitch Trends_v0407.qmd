@@ -348,9 +348,51 @@ for (var in all_cat_like_vars) {
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> p
   print(p)
 }
-
-
 ```
+
+For each of the graphs, we have a y axis that shows the count of each variable. The x axis describes the variable being broken down.
+
+#### Distribution of Code:
+
+"Code" refers to the result of the play. The breakdown of the variables on the x axis are shown above under "Code". The analysis of the distribution would be that most occurrences are balls, strikes, fouls, in play outs, then swing strikes.
+
+#### Distribution of Type:
+
+"Type" describes the result of the play. The possible results being a Ball, a Strike, or a In-Play Event (hit, out, etc.) The analysis from this distribution would be that we can see an even distribution across all three of the variables.
+
+#### Distribution of Pitch Type:
+
+"Pitch type" refer to the different ways a pitcher throws the ball (Fastball, Curve ball, etc.) The analysis in this graph showing the preference of pitch across the league. We see a high occurrence of four seam fastballs out of all the fastballs. the other types of balls have a even distribution across them.
+
+#### Distribution of if Someone was on 1st Base:
+
+This distribution's variable is determined based on if someone was on 1st base at the time of the pitch. It is a Boolean variable, which shows that we only have 2 outcomes on the x axis. Just under a third of the pitches in this dataset had someone on 1st base.
+
+#### Distribution of if Someone was on 2nd Base:
+
+This distribution's variable is determined based on if someone was on 2nd base at the time of the pitch. It is a Boolean variable, which shows that we only have 2 outcomes on the x axis. We see that less pitches had players on 2nd base than what we saw in the first base distribution. Roughly half!
+
+#### Distribution of if Someone was on 3rd Base:
+
+This distribution's variable is determined based on if someone was on 3rd base at the time of the pitch. It is a Boolean variable, which shows that we only have 2 outcomes on the x axis. In this distribution we can see that we have an even smaller count of pitches while an individual is on 3rd base. Roughly half of the 2nd base count which would make us 1/4 of the total pitches with an individual on 1st base.
+
+#### Distribution of Balls Count on Current Count:
+
+This distribution's variable is determined based on the total ball count for the current count at the time of the pitch. We can see that the ball count over the dataset has a negative linearity as ball count goes up.
+
+#### Distribution of Strike Count on Current Count:
+
+This distribution's variable is determined based on the total strike count for the current count at the time of the pitch. Strike count shows that we have a heightened amount of pitches with 0 strikes, but an even amount of 1 strike and 2 strike count.
+
+#### Distribution of Out Count on Current Count:
+
+This distribution's variable is determined based on the total out count for the current count at the time of the pitch. There seems to be an equal distribution of outs per pitch. There is a slight negative correlation ranging possibly 10,000 pitches. This could indicate the pressure of the 3rd out.
+
+#### Distribution of Which Zone the Ball Was Thrown In:
+
+This distribution shows which zone the ball lands in. The distribution shows that theres about an equal amount of pitches to each of the strike zones. 5 having the highest occurrence in the strike zone. The ball zones outside the strike zones show a higher distribution to zone 14. This would be on the outside of a right hand hitter. The zones are based on the following chart:
+
+![](images/clipboard-1010552551.png){width="354"}
 
 ## 3.2 Looking at Continuous
 
@@ -388,6 +430,9 @@ ggplot(pitch_df_long, aes(x = value)) +
 
 
 ```
+
+
+#### Distribution of Continuous Variables:
 
 The faceted density plots show the distribution for each continuous variable in our dataset, visualizing the shape and skewness for each of our continuous variables. This is also helpful for finding peaks for each variable. Visualizing it in this way is important to understand trends for each variable. Variables such as nasty and x have good normal distributions, whereas variables such end_speed and start_speed are clearly left-skewed.
 

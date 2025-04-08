@@ -10,4 +10,4 @@ Do certain pitch tpyes lead to more "nasty" pitches, and what features most infl
 
 Does pitch effectiveness vary when runners are on base?
 
-How consistent are pitch characteristic within a pitch type?
+How consistent are pitch characteristic within a putch type?

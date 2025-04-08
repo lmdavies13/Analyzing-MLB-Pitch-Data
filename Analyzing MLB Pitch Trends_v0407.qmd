@@ -389,6 +389,8 @@ ggplot(pitch_df_long, aes(x = value)) +
 
 ```
 
+The faceted density plots show the distribution for each continuous variable in our dataset, visualizing the shape and skewness for each of our continuous variables. This is also helpful for finding peaks for each variable. Visualizing it in this way is important to understand trends for each variable. Variables such as nasty and x have good normal distributions, whereas variables such end_speed and start_speed are clearly left-skewed.
+
 ## 3.3 Correlation
 
 ```{r}
@@ -425,6 +427,8 @@ corrplot(
   
 ```
 
+The correlation matrix plot visualizes how pairs of continuous variables are related to each other. Dark red indicates a strong positive correlation, dark blue indicates a strong negative correlation, and white indicates a neutral/no correlation. The size of each circle is used to indicate how strong the correlation is as well, so darker colors will show as larger. On the graph we can see that start_speed and end_speed show a very strong positive correlation. Spin rate shows slightly strong positive correlation with pfx_z, start_speed, and end_speed, which makes sense as a higher spin rate tends to cause more vertical movement and is typically associated with higher speeds. Conversely it shows that vy0 has a strong negative correlation with variables such as pfx_z, start_speed, and end_speed, which makes sense as faster pitches will have less of an initial vertical velocity.
+
 ## 3.4 Looking at Outliers
 
 ### Boxplots to spot outliers in continuous vars
@@ -441,6 +445,8 @@ ggplot(pitch_df_long, aes(y = value)) +
 
 ```
 
+This faceted boxplot shows each continuous variable's distribution and variability. This is helpful in visualizing outliers and in which direction they appear. Variables such as start-speed, end-speed, and y show more outliers on the lower end, whereas variables such as pitch_num, vy0, and break_angle are shown to have many outliers on the higher end. By visualizing these outliers we can easily decide on the best way to handle them.
+
 Looking specifically at pitch speed
 
 ```{r}
@@ -449,6 +455,8 @@ ggplot(pitch_df, aes(y = start_speed)) +
   theme_minimal() +
   labs(title = "Boxplot of Pitch Speeds", y = "Pitch Speed (mph)")
 ```
+
+We can see that pitch speed shows many outliers for lower values with none for higher values. This will help us decide later on the best course of action.
 
 ### For now, we will hold off on normalizing and removing outliers until we begin modeling
 
@@ -530,6 +538,8 @@ ggplot(pitch_df, aes(x=pitch_type, y= start_speed)) +
   labs(title = "Pitch Speed Distribution by Pitch Type")
 ```
 
+This graph is comparing pitch speeds by pitch type. It shows that fastball pitch types (FA, FC, FF, FT, SL) typically have a higher initial pitch speed, while others such as curveball (CU) or intentional ball (IN) start slower.
+
 ### Distribution of Pitch Types
 
 ```{r}
@@ -539,6 +549,8 @@ ggplot(pitch_df, aes(x = pitch_type)) +
   labs(title = "Frequency of Different Pitch Types")
 ```
 
+This bar chart is simply showing the count of each pitch-type in our dataset. By far the highest count of pitch types is the four-seam fastball (FF), with certain types not appearing as often, such as generic fastball (FA), screwball (SC), or unknown (UN).
+
 ### Distribution of Pitch Speeds
 
 ```{r}
@@ -547,6 +559,8 @@ ggplot(pitch_df, aes(x = start_speed)) +
   theme_minimal() +
   labs(title = "Density Plot of Pitch Speeds", x = "Pitch Speed (mph)", y = "Density")
 ```
+
+This graph shows the distribution of all pitch speeds. The graph has a peak around 93 mph, and is left-skewed, indicating that most pitches in our dataset have a higher pitch speed. This makes sense as the largest pitch type in our dataset is the four-seam fastball (FF).
 
 ### Histograms for pitch speed, and spin rate
 
@@ -562,6 +576,10 @@ ggplot(pitch_df, aes(x = spin_rate)) +
   labs(title = "Distribution of Spin Rate", x = "Spin Rate (rpm)", y = "Count")
 ```
 
+The graph titled "Distribution of Pitch Speeds" is a histogram detailing the counts of pitch speeds in our dataset, similar to the previous density plot. This is beneficial in showing exact counts of each specific pitch speed, whereas the density plot is more beneficial for showing the general trend.
+
+The graph titled "Distribution of Spin Rate" is a histogram detailing the distribution of spin rate across all pitch types in our dataset. It shows a peak at around 2200 RPM, with a smaller secondary bump around 1000 RPM. The graph is right-skewed, indicating that our dataset typically has lower spin rate data.
+
 Nasty Score by Pitch Type
 
 ```{r}
@@ -571,6 +589,8 @@ ggplot(pitch_df, aes(x = pitch_type, y = nasty)) +
   labs(title = "Nasty Score by Pitch Type", x = "Pitch Type", y = "Nasty Rating")
 
 ```
+
+This box plot shows the nasty score ratings per pitch type. Nasty score is an indicator of how deceptive a pitch is, so pitches like the screwball (SC) have a high median value, whereas pitches like the intentional ball (IN) or pitchout (PO) show a nasty rating of 0 since they are not competitive pitches and do not receive nasty scores. There are many outliers at the top end, indicating that some exceptionally nasty individual pitches are possible regardless of pitch type.
 
 ## 5.2 Transformations
 
@@ -628,6 +648,8 @@ ggplot(pitch_df, aes(x = spin_compass)) +
 
 ```
 
+This bar chart demonstrates the newly transformed spin rate based on compass direction. According to the chart the most common spin direction is south (as well as southwest and southeast), while northwest is least common.
+
 ```{r}
 library(ggplot2)
 library(dplyr)
@@ -639,3 +661,5 @@ ggplot(pitch_df, aes(x = count_category, fill = pitch_type)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
+
+The stacked bar chart shows the proportion of pitch types based on the newly transformed count_category variable. This variable combined the count of balls and strikes into one variable. This is useful as pitchers will change their strategy based on the current amount of balls and strikes. The bar chart shows that four-seam fastballs are most frequent in most count categories, which is consistent since it is the highest count pitch type in our dataset. Pitches such as the curveball (CU) are more common at count-types such as 0-2, 1-2, 2-2, etc. showing that pitchers will try to throw nastier pitches when the batter is at 2 strikes.

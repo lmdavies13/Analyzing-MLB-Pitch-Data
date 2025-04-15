@@ -431,7 +431,6 @@ ggplot(pitch_df_long, aes(x = value)) +
 
 ```
 
-
 #### Distribution of Continuous Variables:
 
 The faceted density plots show the distribution for each continuous variable in our dataset, visualizing the shape and skewness for each of our continuous variables. This is also helpful for finding peaks for each variable. Visualizing it in this way is important to understand trends for each variable. Variables such as nasty and x have good normal distributions, whereas variables such end_speed and start_speed are clearly left-skewed.
@@ -488,6 +487,27 @@ ggplot(pitch_df_long, aes(y = value)) +
        y = "Value") +
   theme_minimal()
 
+```
+
+```{r}
+#write code to see percentage of outlier
+outlier_summary <- pitch_df_long %>%
+  group_by(variable) %>%
+  mutate(
+    Q1 = quantile(value, 0.25, na.rm = TRUE),
+    Q3 = quantile(value, 0.75, na.rm = TRUE),
+    IQR = Q3 - Q1,
+    is_outlier = value < (Q1 - 1.5 * IQR) | value > (Q3 + 1.5 * IQR)
+  ) %>%
+  summarise(
+    total = n(),
+    outliers = sum(is_outlier, na.rm = TRUE),
+    outlier_pct = round(100 * outliers / total, 2)
+  ) %>%
+  arrange(desc(outlier_pct))
+
+# view table
+outlier_summary
 ```
 
 This faceted boxplot shows each continuous variable's distribution and variability. This is helpful in visualizing outliers and in which direction they appear. Variables such as start-speed, end-speed, and y show more outliers on the lower end, whereas variables such as pitch_num, vy0, and break_angle are shown to have many outliers on the higher end. By visualizing these outliers we can easily decide on the best way to handle them.
@@ -639,6 +659,12 @@ This box plot shows the nasty score ratings per pitch type. Nasty score is an in
 
 ## 5.2 Transformations
 
+Need more transformation while answering initial questions
+
+More plots of initial questions — report findings (focus on these before modeling)
+
+(week after) - Maybe find more irrelevant attributes
+
 Here we will create a count category attribute e.g. count: 3-1
 
 ```{r}
@@ -708,3 +734,73 @@ ggplot(pitch_df, aes(x = count_category, fill = pitch_type)) +
 ```
 
 The stacked bar chart shows the proportion of pitch types based on the newly transformed count_category variable. This variable combined the count of balls and strikes into one variable. This is useful as pitchers will change their strategy based on the current amount of balls and strikes. The bar chart shows that four-seam fastballs are most frequent in most count categories, which is consistent since it is the highest count pitch type in our dataset. Pitches such as the curveball (CU) are more common at count-types such as 0-2, 1-2, 2-2, etc. showing that pitchers will try to throw nastier pitches when the batter is at 2 strikes.
+
+### Spin Rate vs Pitch Outcome
+
+```{r}
+ggplot(pitch_df, aes(x = spin_rate, fill = type)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ type) +
+  labs(title = "Spin Rate Density by Pitch Result Type", x = "Spin Rate", y = "Density") +
+  theme_minimal()
+```
+
+### Does pitch effectiveness vary when runners are on base?
+
+```{r}
+# Boxplot of nasty score when runners are on base or not
+pitch_df %>%
+  mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0) %>%
+  ggplot(aes(x = as.factor(runners_on_base), y = nasty)) +
+  geom_boxplot(fill = "tomato") +
+  labs(title = "Nasty Score vs Runner Presence",
+       x = "Runners On Base (0 = No, 1 = Yes)", y = "Nasty Score") +
+  theme_minimal()
+
+```
+
+### Do certain pitch types produce certain outcomes?
+
+```{r}
+ggplot(pitch_df, aes(x = pitch_type, fill = type)) +
+  geom_bar(position = "fill") +
+  labs(title = "Pitch Result Type by Pitch Type",
+       x = "Pitch Type", y = "Proportion") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Nasty Rating by Pitch Count
+
+```{r}
+ggplot(pitch_df, aes(x = count_category, y = nasty)) +
+  geom_boxplot(fill = "purple") +
+  theme_minimal() +
+  labs(title = "Nasty Rating by Count", x = "Ball-Strike Count", y = "Nasty Score") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+### Spin Rate by Pitch Type
+
+```{r}
+ggplot(pitch_df, aes(x = pitch_type, y = spin_rate)) +
+  geom_boxplot(fill = "goldenrod") +
+  theme_minimal() +
+  labs(title = "Spin Rate by Pitch Type", x = "Pitch Type", y = "Spin Rate")
+
+```
+
+### Just looking at 2 strike counts
+
+```{r}
+# filter where there are 2 strikes
+two_strike_df <- pitch_df %>% filter(s_count == 2)
+
+# pitch type usage in 2-strike counts
+ggplot(two_strike_df, aes(x = pitch_type)) +
+  geom_bar(fill = "dodgerblue") +
+  labs(title = "Pitch Type Usage with 2 Strikes", x = "Pitch Type", y = "Count") +
+  theme_minimal()
+
+```

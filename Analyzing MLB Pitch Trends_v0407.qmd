@@ -599,6 +599,9 @@ summary(pitch_df$start_speed)
 ```{r}
 library(ggplot2)
 
+# Reorder factor levels based on the median of 'Value'
+pitch_df$pitch_type <- reorder(pitch_df$pitch_type, pitch_df$start_speed)
+
 ggplot(pitch_df, aes(x=pitch_type, y= start_speed)) +
   geom_boxplot() +
   theme_minimal() +
@@ -650,6 +653,9 @@ The graph titled "Distribution of Spin Rate" is a histogram detailing the distri
 Nasty Score by Pitch Type
 
 ```{r}
+# Reorder factor levels based on the median of 'Value'
+pitch_df$pitch_type <- reorder(pitch_df$pitch_type, pitch_df$nasty)
+
 ggplot(pitch_df, aes(x = pitch_type, y = nasty)) +
   geom_boxplot(fill = "red") +
   theme_minimal() +
@@ -856,6 +862,9 @@ This stacked bar chart shows the proportion of pitch results within each pitch t
 ### Nasty Rating by Pitch Count
 
 ```{r}
+# Reorder factor levels based on the median of 'nasty'
+pitch_df$count_category <- reorder(pitch_df$count_category, pitch_df$nasty)
+
 ggplot(pitch_df, aes(x = count_category, y = nasty)) +
   geom_boxplot(fill = "purple") +
   theme_minimal() +
@@ -869,6 +878,9 @@ This boxplot shows nasty rating across different ball-strike counts. The highest
 ### Spin Rate by Pitch Type
 
 ```{r}
+# Reorder factor levels based on the median of 'spin_rate'
+pitch_df$pitch_type <- reorder(pitch_df$pitch_type, pitch_df$spin_rate)
+
 ggplot(pitch_df, aes(x = pitch_type, y = spin_rate)) +
   geom_boxplot(fill = "goldenrod") +
   theme_minimal() +

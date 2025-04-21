@@ -489,6 +489,8 @@ ggplot(pitch_df_long, aes(y = value)) +
 
 ```
 
+This faceted boxplot shows each continuous variable's distribution and variability. This is helpful in visualizing outliers and in which direction they appear. Variables such as start-speed, end-speed, and y show more outliers on the lower end, whereas variables such as pitch_num, vy0, and break_angle are shown to have many outliers on the higher end. By visualizing these outliers we can easily decide on the best way to handle them.
+
 ```{r}
 #write code to see percentage of outlier
 outlier_summary <- pitch_df_long %>%
@@ -510,7 +512,7 @@ outlier_summary <- pitch_df_long %>%
 outlier_summary
 ```
 
-This faceted boxplot shows each continuous variable's distribution and variability. This is helpful in visualizing outliers and in which direction they appear. Variables such as start-speed, end-speed, and y show more outliers on the lower end, whereas variables such as pitch_num, vy0, and break_angle are shown to have many outliers on the higher end. By visualizing these outliers we can easily decide on the best way to handle them.
+This table shows in descending order each variable's percentage of outliers in the dataset. Most variables have an outlier percentage of less than 3%, with two exceptions: y0 and b_score. The variable y0 indicates the y-coordinate of pitch release and has an outlier percentage of 11.20, and b_score indicates the batter's score situation with an outlier percentage of 4.67. The initial release position along the y-axis outliers can be explained by different pitch release mechanics: submariner pitches are pitches released very close to the ground and are uncommon enough to exist as outliers. For b_score, it makes sense to have a slightly higher percentage of outliers for situations where there is a blowout or unusually big single innings.
 
 Looking specifically at pitch speed
 
@@ -745,6 +747,8 @@ ggplot(pitch_df, aes(x = spin_rate, fill = type)) +
   theme_minimal()
 ```
 
+This density plot shows the distribution of spin rate across the three ball types (ball, strikes, and in-play). All three have very similar distributions, although strikes have a slightly higher average spin rate than balls and in-play has a slightly higher average than strikes. This makes sense, as a higher spin rate would be more likely to result in strikes or contact since the batter will be more likely to swing.
+
 ### Does pitch effectiveness vary when runners are on base?
 
 ```{r}
@@ -758,6 +762,8 @@ pitch_df %>%
   theme_minimal()
 
 ```
+
+This boxplot compares the nasty score of pitches against whether or not there are runners on base. Both boxplots are very similar, indicating that pitchers typically don't change their pitch style to make more nasty pitches based on whether or not there are runners on base.
 
 To investigate whether pitch effectiveness (measured by "nasty" score) really is based on runner presence, we go beyond the simple box-plot shown and apply statistical test and summary stats to verify the similarity that the visualization above suggests.
 
@@ -845,6 +851,8 @@ ggplot(pitch_df, aes(x = pitch_type, fill = type)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
+This stacked bar chart shows the proportion of pitch results within each pitch type. This shows that fastballs (FA) have the highest proportion of strikes, while pitches such as pitch outs (PO) where the pitcher is specifically not trying to get a strike has a huge proportion of balls. Automatic ball (AB) is a ball issued without a pitch being thrown, so it makes sense to have 100% balls, as well as intentional ball (IN) where the pitcher intentionally gets a ball. For the unclassified (UN) and not available (NA) pitches the proportion of balls is higher, indicating ambiguity in the pitch data.
+
 ### Nasty Rating by Pitch Count
 
 ```{r}
@@ -856,6 +864,8 @@ ggplot(pitch_df, aes(x = count_category, y = nasty)) +
 
 ```
 
+This boxplot shows nasty rating across different ball-strike counts. The highest median nasty rating is at count 0-0, indicating that pitchers will tend to open with a more aggressive pitch. As the count grows, however, the nasty rating starts to stabilize. Each count shows a number of outliers, typically on the higher end, indicating that pitchers will still occasionally throw nastier pitches to throw batters off.
+
 ### Spin Rate by Pitch Type
 
 ```{r}
@@ -865,6 +875,8 @@ ggplot(pitch_df, aes(x = pitch_type, y = spin_rate)) +
   labs(title = "Spin Rate by Pitch Type", x = "Pitch Type", y = "Spin Rate")
 
 ```
+
+This boxplot shows the distribution of spin rates across pitch types. More competitive pitches like the four-seam fastball (FF), two-seam fastball (FT), and sinker (SI) all show a higher average spin rate. This makes sense as the harder to hit pitches will tend to have higher spin rates. Some high outliers are present, with some reaching over 6000 rpm. These are likely the result of data artifacts: errors in measurement/the data collection system.
 
 ### Just looking at 2 strike counts
 
@@ -879,3 +891,5 @@ ggplot(two_strike_df, aes(x = pitch_type)) +
   theme_minimal()
 
 ```
+
+This bar chart shows the frequency of different pitch types thrown with two strikes on the board. The most common pitch by far is the four-seam fastball, followed by sliders. This makes sense, as the pitcher will be trying to throw harder, more competitive pitches to trigger the third strike.

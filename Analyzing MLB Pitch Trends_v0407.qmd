@@ -759,6 +759,81 @@ pitch_df %>%
 
 ```
 
+To investigate whether pitch effectiveness (measured by "nasty" score) really is based on runner presence, we go beyond the simple box-plot shown and apply statistical test and summary stats to verify the similarity that the visualization above suggests.
+
+#### 1. Check Summary Statistics
+
+We compare mean, median, standard deviation, and count for pitches with and without runners on base.
+
+```{r}
+pitch_df |> 
+  mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0) |>
+  group_by(runners_on_base) |>
+  summarise(
+    mean_nasty = mean(nasty, na.rm = TRUE),
+    median_nasty = median(nasty, na.rm = TRUE),
+    sd_nasty = sd(nasty, na.rm = TRUE),
+    count = n()
+  )
+```
+
+This shows that numerically with mean that there is a slight difference.
+
+#### 2. Perform a Statistical Test (T-Test)
+
+This is to check if the difference is mean is statistically significant
+
+```{r}
+# IF nasty is normally distributed
+library(stats)
+t.test(nasty ~ runners_on_base, data = pitch_df |>
+         mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0))
+```
+
+```{r}
+# IF nasty is not normal (often the case), should use non-parametric: 
+wilcox.test(nasty ~ runners_on_base, data = pitch_df |>
+         mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0))
+```
+
+#### 3. Visualize with Density Plot
+
+This is to get a more detailed shape comparison:
+
+```{r}
+pitch_df |> 
+  mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0) |>
+  ggplot(aes(x = nasty, color = as.factor(runners_on_base), fill = as.factor(runners_on_base))) + 
+  geom_density(alpha = 0.3) +
+  labs(title = "Density of Nasty Score by Runner Presence",
+       x = "Nasty Score - (0-100)", fill = "Runners On Base")+
+  scale_fill_manual(values = c("skyblue", "orange")) +
+  theme_minimal()
+```
+
+\# Use of the violin plot is to show full distribution (how the data is spread out and whether it's skewed, etc.) unlike the boxplot which only shows quartiles and medians.
+
+#Violin plot shows summary stats and distribution: inside the violin, you still see a boxplot or median line - giving both summary statistics and the probability density.
+
+```{r}
+# Try a Violin visual???
+pitch_df |>
+  mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0) |>
+  ggplot(aes(x = as.factor(runners_on_base), y = nasty, fill = as.factor(runners_on_base))) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.1, color = "black") +
+  labs(title = "Distribution of Nasty Score by Runner Presence",
+       x = "Runners On Base (0 = No, 1 = Yes)", y = "Nasty Score: (0-100)") +
+  scale_fill_manual(values = c("#66c2a5", "#fc8d62")) +
+  theme_minimal()
+```
+
+Conclusion:
+
+-   If means and medians are nearly identical, and the t-test/Wilcox on shows P \> 0.05, then the distributions are statistically similar.
+
+-   Density/ Violin plots help to confirm this visually beyond the original boxplot.
+
 ### Do certain pitch types produce certain outcomes?
 
 ```{r}

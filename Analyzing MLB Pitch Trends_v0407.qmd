@@ -577,6 +577,53 @@ We can see that pitch speed shows many outliers for lower values with none for h
 #pitch_df_clean <- pitch_df %>% filter(start_speed >= lower_bound & start_speed <= upper_bound)
 ```
 
+## 3.5 Investigating 4-1 and 4-2 Pitch Counts
+
+Some x-axis visualizations show pitch counts of 4 balls and 1 or 2 strikes. Since an at-bat should end when the batter receives 4 balls, this raises the question of whether those counts reflect valid pitch sequences (e.g., 0-2 followed by 4 balls) or data issues. We investigate by checking pitch-by-pitch progression in these at-bats. The code below verifies the validity of the 4-1 and 4-2 pitch counts.
+
+```{r}
+# Clone the full dataset before cleaning (so ab_id is preserved)
+pitch_full <- read_csv("pitches.csv", show_col_types = FALSE)
+
+# Filter pitches where the count is 4 balls and 1 or 2 strikes
+suspect_pitches <- pitch_full %>%
+  filter(b_count == 4, s_count %in% c(1, 2))
+
+# Get the relevant at-bat IDs
+suspect_ids <- unique(suspect_pitches$ab_id)
+
+# Retrieve all pitches from those at-bats
+sequences <- pitch_full %>%
+  filter(ab_id %in% suspect_ids) %>%
+  arrange(ab_id, pitch_num) %>%
+  group_by(ab_id) %>%
+  mutate(
+    prev_b = lag(b_count, default = 0),
+    prev_s = lag(s_count, default = 0)
+  ) %>%
+  ungroup()
+
+# Identify invalid transitions:
+# - More balls after reaching 4
+# - More strikes after reaching 3
+balls_after_walk <- sequences %>%
+  filter(prev_b >= 4 & b_count > prev_b)
+
+strikes_after_strikeout <- sequences %>%
+  filter(prev_s >= 3 & s_count > prev_s)
+
+invalid <- bind_rows(balls_after_walk, strikes_after_strikeout)
+
+# Confirm validity
+if (nrow(invalid) == 0) {
+  print("All 4-1 and 4-2 pitch counts are valid — no data issues detected.")
+} else {
+  print("Some count transitions appear invalid:")
+  print(invalid)
+}
+
+```
+
 # 4. Questions we want answer
 
 ### Questions

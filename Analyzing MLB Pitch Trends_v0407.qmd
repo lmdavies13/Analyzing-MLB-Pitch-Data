@@ -514,6 +514,41 @@ outlier_summary
 
 This table shows in descending order each variable's percentage of outliers in the dataset. Most variables have an outlier percentage of less than 3%, with two exceptions: y0 and b_score. The variable y0 indicates the y-coordinate of pitch release and has an outlier percentage of 11.20, and b_score indicates the batter's score situation with an outlier percentage of 4.67. The initial release position along the y-axis outliers can be explained by different pitch release mechanics: submariner pitches are pitches released very close to the ground and are uncommon enough to exist as outliers. For b_score, it makes sense to have a slightly higher percentage of outliers for situations where there is a blowout or unusually big single innings.
 
+Looking into the `y0` variable
+
+```{r}
+# Filter to y0 only
+y0_data <- pitch_df_long %>% filter(variable == "y0")
+
+# Boxplot for y0
+ggplot(y0_data, aes(y = value)) +
+  geom_boxplot(fill = "lightgreen", outlier.color = "red", outlier.size = 1) +
+  labs(title = "Boxplot of y0 (Pitch Release Height)", y = "y0 Height") +
+  theme_minimal()
+
+
+
+
+```
+
+```{r}
+y0_summary <- y0_data %>%
+  summarise(
+    mean = mean(value, na.rm = TRUE),
+    median = median(value, na.rm = TRUE),
+    sd = sd(value, na.rm = TRUE),
+    var = var(value, na.rm = TRUE),
+    Q1 = quantile(value, 0.25, na.rm = TRUE),
+    Q3 = quantile(value, 0.75, na.rm = TRUE),
+    IQR = Q3 - Q1
+  )
+
+y0_summary
+
+```
+
+The variable `y0` shows no visible spread, with nearly all values equal to 50. The boxplot and summary statistics confirm this with an IQR of 0 and a near-zero standard deviation, meaning even tiny deviations are flagged as outliers due to extremely low variance.
+
 Looking specifically at pitch speed
 
 ```{r}

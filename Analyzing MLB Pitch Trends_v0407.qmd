@@ -1,0 +1,1254 @@
+---
+title: "Analyzing MLB Pitch Trends"
+format: html
+editor: visual
+---
+
+In this project we will analyze MLB pitch data from 2015-2018 to view trends in pitching performance using statistical analysis, predictive modeling, and classification techniques. Our goal is to develop models that predict variables like pitch speed while also implementing classification models to determine pitch type.This project will involve data cleaning, visualization, and model evaluation.
+
+We will be using a dataset published on Kaggle titled “MLB Pitch Data (2015-2018),” which contains 8 different tables with information on pitches, at-bats, games, and players. Our focus will primarily be on the “pitches” table, which includes 2,867,154 pitch observations with 40 different attributes describing various aspects of each pitch. While most of the features are continuous variables measuring aspects like speed and rotation, categorical features such as pitch type provide opportunities for classification modeling. The dataset contains noise, including outlier pitches, missing values, and irrelevant features, which will require preprocessing before analysis. By leveraging this data, we aim to build predictive models to analyze pitch characteristics and gain deeper insights into pitching trends.
+
+# 1. Load the Dataset & Inspect Structure
+
+## 1.1 Load the CSV - First install any packages we will be using
+
+```{r}
+install.packages("corrplot", repos = "https://cloud.r-project.org")
+install.packages("tidyverse", repos = "https://cloud.r-project.org")
+```
+
+Load necessary libraries
+
+Read the dataset (CSV Format)
+
+```{r}
+library(tidyverse)
+
+data_file <- "pitches.csv"
+
+pitch_df <- read_csv(data_file)
+```
+
+## 1.2 Checking Structure of the Data
+
+Check the structure of the dataset
+
+```{r}
+glimpse(pitch_df)
+```
+
+Check for duplicates (if any)
+
+```{r}
+pitch_df %>%
+  duplicated() %>%
+  sum()
+
+```
+
+It appears that every single pitch observation is unique. This is due to the many different measurement attributes we have and the uniqueness of their values.
+
+Print the size of the table
+
+```{r}
+dim(pitch_df)
+```
+
+Take a look at the features
+
+```{r}
+str(pitch_df)
+```
+
+From this we can see out of the 40 attributes, 37 of them are continuous, and 3 of them are categorical (code, type, pitch type)
+
+Now we will look at the summary of the data
+
+```{r}
+summary(pitch_df)
+```
+
+# 2. Handling NAs
+
+## 2.1 First, Remove Attributes we don't need
+
+Below we will remove the following attributes as they will serve us no purpose in our analysis.
+
+px - We are not concerned with the location on home plate, we have Zone
+
+pz - We are not concerned with the location on home plate, we have Zone
+
+break_y - we have break angle and break length
+
+ax - Raw acceleration vector - dont need for analysis
+
+ay - Raw acceleration vector - dont need for analysis
+
+az - Raw acceleration vector - dont need for analysis
+
+sz_bot - Not really concerned with batter specifics
+
+sz_top - Not really concerned with batter specifics
+
+type_confidence - Don't really care about pitch classification quality
+
+event_num - Not concerned with game or score specifics
+
+b_score - Not concerned with game or score specifics
+
+ab_id - Not concerned with who is at bat
+
+```{r}
+# listing the columns to remove
+cols_to_remove <- c(
+  "px", "pz", 
+  "break_y", 
+  "ax", "ay", "az", 
+  "sz_bot", "sz_top", 
+  "type_confidence", 
+  "event_num", "b_score",
+  "ab_id"
+)
+
+#replace pitch_df to exclude the above columns
+pitch_df <- pitch_df[, !(names(pitch_df) %in% cols_to_remove)]
+
+#print out the new df attributes
+cat("Remaining columns in pitch_df:\n")
+print(names(pitch_df))
+```
+
+## 2.2 Removing NAs
+
+Check for missing values: find the NA's in each column
+
+Check the number of NAs in each column
+
+```{r}
+# check for missing values
+colSums(is.na(pitch_df))
+```
+
+Lets look and see what the percentage of NAs is per column
+
+```{r}
+# Check for the percentage of missing values 
+colMeans(is.na(pitch_df)) * 100
+```
+
+### Deciding how to handle these:
+
+Due to the percentage of missing values being so small in the dataset, we will just remove them all without further investigation
+
+```{r}
+# Remove rows with missing values 
+na_rows <- apply(is.na(pitch_df), 1, any)
+pitch_df <- pitch_df[!na_rows, ]
+sum(is.na(pitch_df))
+```
+
+### Lets look at any infinite values
+
+```{r}
+# check how many rows contain any infinite values
+infinite_rows <- apply(pitch_df, 1, function(row) any(is.infinite(row)))
+cat("Number of rows with Inf or -Inf values:", sum(infinite_rows), "\n")
+
+# Remove those rows
+pitch_df <- pitch_df[!infinite_rows, ]
+
+```
+
+### New Dimension of DF
+
+```{r}
+dim(pitch_df)
+```
+
+# 3. Looking at our Variables
+
+### **Variable Descriptions – `pitches.csv`**
+
+-   **start_speed**: Speed of the pitch at release (in mph).
+
+-   **end_speed**: Speed of the pitch when it crosses the plate (in mph).
+
+-   **spin_rate**: Rate of spin on the ball (in revolutions per minute).
+
+-   **spin_dir**: Direction of spin measured in degrees (like a clock face).
+
+-   **break_angle**: Horizontal angle of the pitch's break (in degrees).
+
+-   **break_length**: Magnitude of the pitch's break (in inches).
+
+-   **vx0, vy0, vz0**: Velocity components at the release point in the x, y, and z directions (in ft/sec).
+
+-   **x, y**: Plate location coordinates (pixels in original video context, less relevant for analysis).
+
+-   **x0, y0, z0**: Release point coordinates of the pitch (in feet).
+
+-   **pfx_x, pfx_z**: Pitch movement in the x and z directions due to spin (in inches).
+
+-   **nasty**: A subjective rating of how difficult the pitch is to hit (higher is harder).
+
+-   **zone**: Zone number representing where the pitch crossed the strike zone.
+
+-   **code**: Umpire's call (e.g., 'B' = ball, 'C' = called strike, 'S' = swinging strike).
+
+-   **type**: Simplified pitch result (e.g., 'S' = strike, 'B' = ball).
+
+-   **pitch_type**: Type of pitch (e.g., 'FF' = four-seam fastball, 'SL' = slider).
+
+-   **b_count, s_count**: Number of balls and strikes at the time of the pitch.
+
+-   **outs**: Number of outs in the inning.
+
+-   **pitch_num**: Pitch number in the current at-bat.
+
+-   **on_1b, on_2b, on_3b**: Binary indicators (0 or 1) for whether there was a runner on first, second, or third base.
+
+## 3.1 Looking at Categorical
+
+### Pitch Types
+
+CH - Changeup
+
+CU - Curveball
+
+EP - Eephus\*
+
+FC - Cutter
+
+FF - Four-seam Fastball
+
+FO - Pitchout (also PO)\*
+
+FS - Splitter
+
+FT - Two-seam Fastball
+
+IN - Intentional ball
+
+KC - Knuckle curve
+
+KN - Knuckeball
+
+PO - Pitchout (also FO)\*
+
+SC - Screwball\*
+
+SI - Sinker
+
+SL - Slider
+
+UN - Unknown\*
+
+-   these pitch types occur rarely
+
+### Type
+
+-   **B** = **Ball**
+
+-   **S** = **Strike**
+
+-   **X** = **In play**
+
+### Code Type
+
+While these aren't spelled out anywhere, play descriptions allowed confident identification of these codes
+
+B - Ball
+
+\*B - Ball in dirt
+
+S - Swinging Strike
+
+C - Called Strike
+
+F - Foul
+
+T - Foul Tip
+
+L - Foul Bunt
+
+I - Intentional Ball
+
+W - Swinging Strike (Blocked)
+
+M - Missed Bunt
+
+P - Pitchout
+
+Q - Swinging pitchout
+
+R - Foul pitchout
+
+Values that only occur on last pitch of at-bat:
+
+X - In play, out(s)
+
+D - In play, no out
+
+E - In play, runs
+
+H - Hit by pitch
+
+Note: all codes, except for H, come directly from the XML files. All at-bats with code H were given no code in the XMLs.
+
+### Categorical Distribution
+
+```{r}
+# Categorical variables
+cat_vars <- c("code", "type", "pitch_type")
+
+# Boolean/binary runner flags
+runner_vars <- c("on_1b", "on_2b", "on_3b")
+
+# Numeric discrete variables (should be treated like categorical)
+num_discrete <- c("b_count", "s_count", "outs", "zone")
+
+# Frequency tables for categorical vars
+cat("Frequency tables for categorical variables:\n")
+for (var in cat_vars) {
+  cat("\n", var, ":\n")
+  print(table(pitch_df[[var]]))
+}
+
+# Proportions for each categorical var
+cat("\nProportion tables:\n")
+for (var in cat_vars) {
+  cat("\n", var, ":\n")
+  print(prop.table(table(pitch_df[[var]])))
+}
+
+# Frequency tables for runner presence
+cat("\nRunner presence (boolean) counts:\n")
+for (var in runner_vars) {
+  cat("\n", var, ":\n")
+  print(table(pitch_df[[var]]))
+}
+
+# Frequency tables for numeric discrete (but categorical in logic)
+cat("\nFrequency tables for numeric discrete (treated as categorical):\n")
+for (var in num_discrete) {
+  cat("\n", var, ":\n")
+  print(table(pitch_df[[var]]))
+}
+
+# Bar plots for all: categorical + boolean + discrete
+library(ggplot2)
+
+all_cat_like_vars <- c(cat_vars, runner_vars, num_discrete)
+
+for (var in all_cat_like_vars) {
+  ggplot(pitch_df, aes_string(x = var)) +
+    geom_bar(fill = "steelblue") +
+    labs(title = paste("Distribution of", var), x = var, y = "Count") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) -> p
+  print(p)
+}
+```
+
+For each of the graphs, we have a y axis that shows the count of each variable. The x axis describes the variable being broken down.
+
+#### Distribution of Code:
+
+"Code" refers to the result of the play. The breakdown of the variables on the x axis are shown above under "Code". The analysis of the distribution would be that most occurrences are balls, strikes, fouls, in play outs, then swing strikes.
+
+#### Distribution of Type:
+
+"Type" describes the result of the play. The possible results being a Ball, a Strike, or a In-Play Event (hit, out, etc.) The analysis from this distribution would be that we can see an even distribution across all three of the variables.
+
+#### Distribution of Pitch Type:
+
+"Pitch type" refer to the different ways a pitcher throws the ball (Fastball, Curve ball, etc.) The analysis in this graph showing the preference of pitch across the league. We see a high occurrence of four seam fastballs out of all the fastballs. the other types of balls have a even distribution across them.
+
+#### Distribution of if Someone was on 1st Base:
+
+This distribution's variable is determined based on if someone was on 1st base at the time of the pitch. It is a Boolean variable, which shows that we only have 2 outcomes on the x axis. Just under a third of the pitches in this dataset had someone on 1st base.
+
+#### Distribution of if Someone was on 2nd Base:
+
+This distribution's variable is determined based on if someone was on 2nd base at the time of the pitch. It is a Boolean variable, which shows that we only have 2 outcomes on the x axis. We see that less pitches had players on 2nd base than what we saw in the first base distribution. Roughly half!
+
+#### Distribution of if Someone was on 3rd Base:
+
+This distribution's variable is determined based on if someone was on 3rd base at the time of the pitch. It is a Boolean variable, which shows that we only have 2 outcomes on the x axis. In this distribution we can see that we have an even smaller count of pitches while an individual is on 3rd base. Roughly half of the 2nd base count which would make us 1/4 of the total pitches with an individual on 1st base.
+
+#### Distribution of Balls Count on Current Count:
+
+This distribution's variable is determined based on the total ball count for the current count at the time of the pitch. We can see that the ball count over the dataset has a negative linearity as ball count goes up.
+
+#### Distribution of Strike Count on Current Count:
+
+This distribution's variable is determined based on the total strike count for the current count at the time of the pitch. Strike count shows that we have a heightened amount of pitches with 0 strikes, but an even amount of 1 strike and 2 strike count.
+
+#### Distribution of Out Count on Current Count:
+
+This distribution's variable is determined based on the total out count for the current count at the time of the pitch. There seems to be an equal distribution of outs per pitch. There is a slight negative correlation ranging possibly 10,000 pitches. This could indicate the pressure of the 3rd out.
+
+#### Distribution of Which Zone the Ball Was Thrown In:
+
+This distribution shows which zone the ball lands in. The distribution shows that theres about an equal amount of pitches to each of the strike zones. 5 having the highest occurrence in the strike zone. The ball zones outside the strike zones show a higher distribution to zone 14. This would be on the outside of a right hand hitter. The zones are based on the following chart:
+
+![](images/clipboard-1010552551.png){width="354"}
+
+## 3.2 Looking at Continuous
+
+### Looking at Continuous Distributions
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# Define all non-continuous variables (categorical + boolean + discrete)
+non_cont <- c("code", "type", "pitch_type", 
+              "on_1b", "on_2b", "on_3b", 
+              "b_count", "s_count", "outs", "zone")
+
+# Get remaining variable names (candidate continuous)
+cont_vars <- setdiff(names(pitch_df), non_cont)
+
+# Keep only truly numeric continuous variables
+cont_vars <- cont_vars[sapply(pitch_df[cont_vars], is.numeric)]
+
+# reshape to long format and remove non-finite values
+pitch_df_long <- pitch_df %>%
+  select(all_of(cont_vars)) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  filter(is.finite(value))
+
+# plot faceted density plots
+ggplot(pitch_df_long, aes(x = value)) +
+  geom_density(fill = "steelblue", alpha = 0.6) +
+  facet_wrap(~ variable, scales = "free", ncol = 3) +
+  labs(title = "Distribution of Continuous Variables",
+       x = "Value", y = "Density") +
+  theme_minimal()
+
+
+```
+
+#### Distribution of Continuous Variables:
+
+The faceted density plots show the distribution for each continuous variable in our dataset, visualizing the shape and skewness for each of our continuous variables. This is also helpful for finding peaks for each variable. Visualizing it in this way is important to understand trends for each variable. Variables such as nasty and x have good normal distributions, whereas variables such end_speed and start_speed are clearly left-skewed.
+
+## 3.3 Correlation
+
+```{r}
+library(corrplot)
+
+# Define non-continuous (categorical + discrete) variables
+non_cont <- c("code", "type", "pitch_type", 
+              "on_1b", "on_2b", "on_3b", 
+              "b_count", "s_count", "outs", "zone")
+
+# Get continuous numeric variables
+cont_vars <- setdiff(names(pitch_df), non_cont)
+cont_vars <- cont_vars[sapply(pitch_df[cont_vars], is.numeric)]
+
+# remove variables with no variance
+cont_vars <- cont_vars[sapply(pitch_df[cont_vars], function(x) length(unique(x)) > 1)]
+
+# Build correlation matrix
+cont_data <- pitch_df[, cont_vars]
+corr_mat <- cor(cont_data, use = "complete.obs")  # Handles any residual NAs safely
+
+# Plot correlation matrix
+corrplot(
+  corr_mat,
+  method = "circle",
+  type = "upper",
+  order = "hclust",  # Group highly correlated variables
+  tl.col = "black",  # Label text color
+  tl.cex = 0.7,      # Label size
+  tl.srt = 45,       # Label rotation
+  col = colorRampPalette(c("navy", "white", "firebrick3"))(200)  # Custom color gradient
+)
+
+  
+```
+
+The correlation matrix plot visualizes how pairs of continuous variables are related to each other. Dark red indicates a strong positive correlation, dark blue indicates a strong negative correlation, and white indicates a neutral/no correlation. The size of each circle is used to indicate how strong the correlation is as well, so darker colors will show as larger. On the graph we can see that start_speed and end_speed show a very strong positive correlation. Spin rate shows slightly strong positive correlation with pfx_z, start_speed, and end_speed, which makes sense as a higher spin rate tends to cause more vertical movement and is typically associated with higher speeds. Conversely it shows that vy0 has a strong negative correlation with variables such as pfx_z, start_speed, and end_speed, which makes sense as faster pitches will have less of an initial vertical velocity.
+
+## 3.4 Looking at Outliers
+
+### Boxplots to spot outliers in continuous vars
+
+```{r}
+
+# Plot faceted boxplots
+ggplot(pitch_df_long, aes(y = value)) +
+  geom_boxplot(fill = "lightblue", outlier.color = "red", outlier.size = 1) +
+  facet_wrap(~ variable, scales = "free", ncol = 3) +
+  labs(title = "Boxplots of Continuous Variables",
+       y = "Value") +
+  theme_minimal()
+
+```
+
+This faceted boxplot shows each continuous variable's distribution and variability. This is helpful in visualizing outliers and in which direction they appear. Variables such as start-speed, end-speed, and y show more outliers on the lower end, whereas variables such as pitch_num, vy0, and break_angle are shown to have many outliers on the higher end. By visualizing these outliers we can easily decide on the best way to handle them.
+
+```{r}
+#write code to see percentage of outlier
+outlier_summary <- pitch_df_long %>%
+  group_by(variable) %>%
+  mutate(
+    Q1 = quantile(value, 0.25, na.rm = TRUE),
+    Q3 = quantile(value, 0.75, na.rm = TRUE),
+    IQR = Q3 - Q1,
+    is_outlier = value < (Q1 - 1.5 * IQR) | value > (Q3 + 1.5 * IQR)
+  ) %>%
+  summarise(
+    total = n(),
+    outliers = sum(is_outlier, na.rm = TRUE),
+    outlier_pct = round(100 * outliers / total, 2)
+  ) %>%
+  arrange(desc(outlier_pct))
+
+# view table
+outlier_summary
+```
+
+This table shows in descending order each variable's percentage of outliers in the dataset. Most variables have an outlier percentage of less than 3%, with two exceptions: y0 and b_score. The variable y0 indicates the y-coordinate of pitch release and has an outlier percentage of 11.20, and b_score indicates the batter's score situation with an outlier percentage of 4.67. The initial release position along the y-axis outliers can be explained by different pitch release mechanics: submariner pitches are pitches released very close to the ground and are uncommon enough to exist as outliers. For b_score, it makes sense to have a slightly higher percentage of outliers for situations where there is a blowout or unusually big single innings.
+
+Looking into the `y0` variable
+
+```{r}
+# Filter to y0 only
+y0_data <- pitch_df_long %>% filter(variable == "y0")
+
+# Boxplot for y0
+ggplot(y0_data, aes(y = value)) +
+  geom_boxplot(fill = "lightgreen", outlier.color = "red", outlier.size = 1) +
+  labs(title = "Boxplot of y0 (Pitch Release Height)", y = "y0 Height") +
+  theme_minimal()
+
+
+
+
+```
+
+```{r}
+y0_summary <- y0_data %>%
+  summarise(
+    mean = mean(value, na.rm = TRUE),
+    median = median(value, na.rm = TRUE),
+    sd = sd(value, na.rm = TRUE),
+    var = var(value, na.rm = TRUE),
+    Q1 = quantile(value, 0.25, na.rm = TRUE),
+    Q3 = quantile(value, 0.75, na.rm = TRUE),
+    IQR = Q3 - Q1
+  )
+
+y0_summary
+
+```
+
+The variable `y0` shows no visible spread, with nearly all values equal to 50. The boxplot and summary statistics confirm this with an IQR of 0 and a near-zero standard deviation, meaning even tiny deviations are flagged as outliers due to extremely low variance.
+
+Looking specifically at pitch speed
+
+```{r}
+ggplot(pitch_df, aes(y = start_speed)) +
+  geom_boxplot(fill = "lightblue") +
+  theme_minimal() +
+  labs(title = "Boxplot of Pitch Speeds", y = "Pitch Speed (mph)")
+```
+
+We can see that pitch speed shows many outliers for lower values with none for higher values. This will help us decide later on the best course of action.
+
+### For now, we will hold off on normalizing and removing outliers until we begin modeling
+
+```{r}
+#Detect outliers using IQR method
+
+#Q1 <- quantile(pitch_df$start_speed, 0.25, na.rm = TRUE)
+#Q3 <- quantile(pitch_df$start_speed, 0.75, na.rm = TRUE) IQR <- #Q3 - Q1
+
+#Define lower and upper bounds
+
+#lower_bound <- Q1 - 1.5 * IQR upper_bound <- Q3 + 1.5 * IQR
+
+#Filter out extreme outliers
+
+#pitch_df_clean <- pitch_df %>% filter(start_speed >= lower_bound & start_speed <= upper_bound)
+```
+
+## 3.5 Investigating 4-1 and 4-2 Pitch Counts
+
+Some x-axis visualizations show pitch counts of 4 balls and 1 or 2 strikes. Since an at-bat should end when the batter receives 4 balls, this raises the question of whether those counts reflect valid pitch sequences (e.g., 0-2 followed by 4 balls) or data issues. We investigate by checking pitch-by-pitch progression in these at-bats. The code below verifies the validity of the 4-1 and 4-2 pitch counts.
+
+```{r}
+# Clone the full dataset before cleaning (so ab_id is preserved)
+pitch_full <- read_csv("pitches.csv", show_col_types = FALSE)
+
+# Filter pitches where the count is 4 balls and 1 or 2 strikes
+suspect_pitches <- pitch_full %>%
+  filter(b_count == 4, s_count %in% c(1, 2))
+
+# Get the relevant at-bat IDs
+suspect_ids <- unique(suspect_pitches$ab_id)
+
+# Retrieve all pitches from those at-bats
+sequences <- pitch_full %>%
+  filter(ab_id %in% suspect_ids) %>%
+  arrange(ab_id, pitch_num) %>%
+  group_by(ab_id) %>%
+  mutate(
+    prev_b = lag(b_count, default = 0),
+    prev_s = lag(s_count, default = 0)
+  ) %>%
+  ungroup()
+
+# Identify invalid transitions:
+# - More balls after reaching 4
+# - More strikes after reaching 3
+balls_after_walk <- sequences %>%
+  filter(prev_b >= 4 & b_count > prev_b)
+
+strikes_after_strikeout <- sequences %>%
+  filter(prev_s >= 3 & s_count > prev_s)
+
+invalid <- bind_rows(balls_after_walk, strikes_after_strikeout)
+
+# Confirm validity
+if (nrow(invalid) == 0) {
+  print("All 4-1 and 4-2 pitch counts are valid — no data issues detected.")
+} else {
+  print("Some count transitions appear invalid:")
+  print(invalid)
+}
+
+```
+
+# 4. Questions we want answer
+
+### Questions
+
+-   How does pitch speed vary across different pitch types?
+
+-   How does spin rate affect pitch outcome?
+
+-   Do certain pitches produce certain pitching events (des)?
+
+-   What is the most common pitch types used in different situations?
+
+-   Do certain pitch tpyes lead to more "nasty" pitches, and what features most influence nastiness?
+
+-   Does pitch effectiveness vary when runners are on base?
+
+-   How consistent are pitch characteristic within a pitch type?
+
+### Target Variable
+
+-   start_speed (regression)
+
+-   pitch_type (classification)
+
+-   nasty/nasty_category (regression or classification)
+
+### Predictor Variables
+
+-   spin_rate, spin_dir, break_angle, break_length
+
+-   vx0, vy0, vz0 (initial velocity vectors)
+
+-   pfx_x, pfx_z (movement due to spin)
+
+-   x0, z0 (release point coords — maybe exclude `y0` as it’s uniform)
+
+-   b_count, s_count, outs, zone
+
+-   Engineered features: count_category, spin_compass, nasty_category, travel_time
+
+# 5. Exploratory Data Analysis, Visualization and Transformation
+
+### Summary Stats for Key Numeric Columns
+
+```{r}
+# Summary Statistics for key numeric columns
+summary(pitch_df$spin_rate)
+summary(pitch_df$start_speed)
+```
+
+## 5.1 Visualizations
+
+### Pitch Speed Distribution by Pitch Type
+
+```{r}
+library(ggplot2)
+
+# Reorder factor levels based on the median of 'Value'
+pitch_df$pitch_type <- reorder(pitch_df$pitch_type, pitch_df$start_speed)
+
+ggplot(pitch_df, aes(x=pitch_type, y= start_speed)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Pitch Speed Distribution by Pitch Type")
+```
+
+This graph is comparing pitch speeds by pitch type. It shows that fastball pitch types (FA, FC, FF, FT, SL) typically have a higher initial pitch speed, while others such as curveball (CU) or intentional ball (IN) start slower.
+
+### Distribution of Pitch Types
+
+```{r}
+ggplot(pitch_df, aes(x = pitch_type)) +
+  geom_bar(fill = "steelblue") +
+  theme_minimal() +
+  labs(title = "Frequency of Different Pitch Types")
+```
+
+This bar chart is simply showing the count of each pitch-type in our dataset. By far the highest count of pitch types is the four-seam fastball (FF), with certain types not appearing as often, such as generic fastball (FA), screwball (SC), or unknown (UN).
+
+### Distribution of Pitch Speeds
+
+```{r}
+ggplot(pitch_df, aes(x = start_speed)) +
+  geom_density(fill = "blue", alpha = 0.5) +
+  theme_minimal() +
+  labs(title = "Density Plot of Pitch Speeds", x = "Pitch Speed (mph)", y = "Density")
+```
+
+This graph shows the distribution of all pitch speeds. The graph has a peak around 93 mph, and is left-skewed, indicating that most pitches in our dataset have a higher pitch speed. This makes sense as the largest pitch type in our dataset is the four-seam fastball (FF).
+
+### Histograms for pitch speed, and spin rate
+
+```{r}
+ggplot(pitch_df, aes(x = start_speed)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Distribution of Pitch Speeds", x = "Pitch Speed (mph)", y = "Count")
+
+ggplot(pitch_df, aes(x = spin_rate)) +
+  geom_histogram(binwidth = 50, fill = "darkorange", color = "black") +
+  theme_minimal() +
+  labs(title = "Distribution of Spin Rate", x = "Spin Rate (rpm)", y = "Count")
+```
+
+The graph titled "Distribution of Pitch Speeds" is a histogram detailing the counts of pitch speeds in our dataset, similar to the previous density plot. This is beneficial in showing exact counts of each specific pitch speed, whereas the density plot is more beneficial for showing the general trend.
+
+The graph titled "Distribution of Spin Rate" is a histogram detailing the distribution of spin rate across all pitch types in our dataset. It shows a peak at around 2200 RPM, with a smaller secondary bump around 1000 RPM. The graph is right-skewed, indicating that our dataset typically has lower spin rate data.
+
+Nasty Score by Pitch Type
+
+```{r}
+# Reorder factor levels based on the median of 'Value'
+pitch_df$pitch_type <- reorder(pitch_df$pitch_type, pitch_df$nasty)
+
+ggplot(pitch_df, aes(x = pitch_type, y = nasty)) +
+  geom_boxplot(fill = "red") +
+  theme_minimal() +
+  labs(title = "Nasty Score by Pitch Type", x = "Pitch Type", y = "Nasty Rating")
+
+```
+
+This box plot shows the nasty score ratings per pitch type. Nasty score is an indicator of how deceptive a pitch is, so pitches like the screwball (SC) have a high median value, whereas pitches like the intentional ball (IN) or pitchout (PO) show a nasty rating of 0 since they are not competitive pitches and do not receive nasty scores. There are many outliers at the top end, indicating that some exceptionally nasty individual pitches are possible regardless of pitch type.
+
+## 5.2 Transformations
+
+Need more transformation while answering initial questions
+
+More plots of initial questions — report findings (focus on these before modeling)
+
+(week after) - Maybe find more irrelevant attributes
+
+Here we will create a count category attribute e.g. count: 3-1
+
+```{r}
+pitch_df$count_category <- paste0(pitch_df$b_count, "-", pitch_df$s_count)
+```
+
+Convert spin direction into binned compass categories
+
+```{r}
+# Define compass bins
+bin_labels <- c("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+pitch_df$spin_compass <- cut(
+  pitch_df$spin_dir,
+  breaks = seq(0, 360, by = 45),
+  labels = bin_labels,
+  include.lowest = TRUE,
+  right = FALSE
+)
+```
+
+Create a nasty score category (e.g., low/medium/high nasty) using quantiles
+
+```{r}
+pitch_df$nasty_category <- cut(
+  pitch_df$nasty,
+  breaks = quantile(pitch_df$nasty, probs = c(0, 1/3, 2/3, 1), na.rm = TRUE),
+  labels = c("Low", "Medium", "High"),
+  include.lowest = TRUE
+)
+
+```
+
+We'll approximate time from release to plate using start speed and assume \~60.5 feet of travel.
+
+```{r}
+# Convert mph to ft/sec (1 mph = 1.467 ft/s)
+pitch_df$start_speed_ft_s <- pitch_df$start_speed * 1.467
+
+# Estimate travel time (seconds)
+pitch_df$travel_time <- 60.5 / pitch_df$start_speed_ft_s
+```
+
+## 5.3 More Visualizations After Transformations
+
+**Pitch Distribution by Spin Compass**
+
+```{r}
+ggplot(pitch_df, aes(x = spin_compass)) +
+  geom_bar(fill = "mediumseagreen") +
+  theme_minimal() +
+  labs(title = "Distribution of Pitches by Spin Compass Direction", x = "Spin Direction", y = "Count")
+
+```
+
+This bar chart demonstrates the newly transformed spin rate based on compass direction. According to the chart the most common spin direction is south (as well as southwest and southeast), while northwest is least common.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+ggplot(pitch_df, aes(x = count_category, fill = pitch_type)) +
+  geom_bar(position = "fill") +
+  theme_minimal() +
+  labs(title = "Pitch Type Usage by Count", x = "Count (Balls-Strikes)", y = "Proportion") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+The stacked bar chart shows the proportion of pitch types based on the newly transformed count_category variable. This variable combined the count of balls and strikes into one variable. This is useful as pitchers will change their strategy based on the current amount of balls and strikes. The bar chart shows that four-seam fastballs are most frequent in most count categories, which is consistent since it is the highest count pitch type in our dataset. Pitches such as the curveball (CU) are more common at count-types such as 0-2, 1-2, 2-2, etc. showing that pitchers will try to throw nastier pitches when the batter is at 2 strikes.
+
+### Spin Rate vs Pitch Outcome
+
+```{r}
+ggplot(pitch_df, aes(x = spin_rate, fill = type)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ type) +
+  labs(title = "Spin Rate Density by Pitch Result Type", x = "Spin Rate", y = "Density") +
+  theme_minimal()
+```
+
+This density plot shows the distribution of spin rate across the three ball types (ball, strikes, and in-play). All three have very similar distributions, although strikes have a slightly higher average spin rate than balls and in-play has a slightly higher average than strikes. This makes sense, as a higher spin rate would be more likely to result in strikes or contact since the batter will be more likely to swing.
+
+### Does pitch effectiveness vary when runners are on base?
+
+```{r}
+# Boxplot of nasty score when runners are on base or not
+pitch_df %>%
+  mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0) %>%
+  ggplot(aes(x = as.factor(runners_on_base), y = nasty)) +
+  geom_boxplot(fill = "tomato") +
+  labs(title = "Nasty Score vs Runner Presence",
+       x = "Runners On Base (0 = No, 1 = Yes)", y = "Nasty Score") +
+  theme_minimal()
+
+```
+
+This boxplot compares the nasty score of pitches against whether or not there are runners on base. Both boxplots are very similar, indicating that pitchers typically don't change their pitch style to make more nasty pitches based on whether or not there are runners on base.
+
+To investigate whether pitch effectiveness (measured by "nasty" score) really is based on runner presence, we go beyond the simple box-plot shown and apply statistical test and summary stats to verify the similarity that the visualization above suggests.
+
+#### 1. Check Summary Statistics
+
+We compare mean, median, standard deviation, and count for pitches with and without runners on base.
+
+```{r}
+pitch_df |> 
+  mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0) |>
+  group_by(runners_on_base) |>
+  summarise(
+    mean_nasty = mean(nasty, na.rm = TRUE),
+    median_nasty = median(nasty, na.rm = TRUE),
+    sd_nasty = sd(nasty, na.rm = TRUE),
+    count = n()
+  )
+```
+
+This shows that numerically with mean that there is a slight difference.
+
+#### 2. Perform a Statistical Test (T-Test)
+
+This is to check if the difference is mean is statistically significant
+
+```{r}
+# IF nasty is normally distributed
+library(stats)
+t.test(nasty ~ runners_on_base, data = pitch_df |>
+         mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0))
+```
+
+```{r}
+# IF nasty is not normal (often the case), should use non-parametric: 
+wilcox.test(nasty ~ runners_on_base, data = pitch_df |>
+         mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0))
+```
+
+#### 3. Visualize with Density Plot
+
+This is to get a more detailed shape comparison:
+
+```{r}
+pitch_df |> 
+  mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0) |>
+  ggplot(aes(x = nasty, color = as.factor(runners_on_base), fill = as.factor(runners_on_base))) + 
+  geom_density(alpha = 0.3) +
+  labs(title = "Density of Nasty Score by Runner Presence",
+       x = "Nasty Score - (0-100)", fill = "Runners On Base")+
+  scale_fill_manual(values = c("skyblue", "orange")) +
+  theme_minimal()
+```
+
+\# Use of the violin plot is to show full distribution (how the data is spread out and whether it's skewed, etc.) unlike the boxplot which only shows quartiles and medians.
+
+#Violin plot shows summary stats and distribution: inside the violin, you still see a boxplot or median line - giving both summary statistics and the probability density.
+
+```{r}
+# Try a Violin visual???
+pitch_df |>
+  mutate(runners_on_base = (on_1b + on_2b + on_3b) > 0) |>
+  ggplot(aes(x = as.factor(runners_on_base), y = nasty, fill = as.factor(runners_on_base))) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.1, color = "black") +
+  labs(title = "Distribution of Nasty Score by Runner Presence",
+       x = "Runners On Base (0 = No, 1 = Yes)", y = "Nasty Score: (0-100)") +
+  scale_fill_manual(values = c("#66c2a5", "#fc8d62")) +
+  theme_minimal()
+```
+
+Conclusion:
+
+-   If means and medians are nearly identical, and the t-test/Wilcox on shows P \> 0.05, then the distributions are statistically similar.
+
+-   Density/ Violin plots help to confirm this visually beyond the original boxplot.
+
+### Do certain pitch types produce certain outcomes?
+
+```{r}
+ggplot(pitch_df, aes(x = pitch_type, fill = type)) +
+  geom_bar(position = "fill") +
+  labs(title = "Pitch Result Type by Pitch Type",
+       x = "Pitch Type", y = "Proportion") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+This stacked bar chart shows the proportion of pitch results within each pitch type. This shows that fastballs (FA) have the highest proportion of strikes, while pitches such as pitch outs (PO) where the pitcher is specifically not trying to get a strike has a huge proportion of balls. Automatic ball (AB) is a ball issued without a pitch being thrown, so it makes sense to have 100% balls, as well as intentional ball (IN) where the pitcher intentionally gets a ball. For the unclassified (UN) and not available (NA) pitches the proportion of balls is higher, indicating ambiguity in the pitch data.
+
+### Nasty Rating by Pitch Count
+
+```{r}
+# Reorder factor levels based on the median of 'nasty'
+pitch_df$count_category <- reorder(pitch_df$count_category, pitch_df$nasty)
+
+ggplot(pitch_df, aes(x = count_category, y = nasty)) +
+  geom_boxplot(fill = "purple") +
+  theme_minimal() +
+  labs(title = "Nasty Rating by Count", x = "Ball-Strike Count", y = "Nasty Score") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+This boxplot shows nasty rating across different ball-strike counts. The highest median nasty rating is at count 0-0, indicating that pitchers will tend to open with a more aggressive pitch. As the count grows, however, the nasty rating starts to stabilize. Each count shows a number of outliers, typically on the higher end, indicating that pitchers will still occasionally throw nastier pitches to throw batters off.
+
+### Spin Rate by Pitch Type
+
+```{r}
+# Reorder factor levels based on the median of 'spin_rate'
+pitch_df$pitch_type <- reorder(pitch_df$pitch_type, pitch_df$spin_rate)
+
+ggplot(pitch_df, aes(x = pitch_type, y = spin_rate)) +
+  geom_boxplot(fill = "goldenrod") +
+  theme_minimal() +
+  labs(title = "Spin Rate by Pitch Type", x = "Pitch Type", y = "Spin Rate")
+
+```
+
+This boxplot shows the distribution of spin rates across pitch types. More competitive pitches like the four-seam fastball (FF), two-seam fastball (FT), and sinker (SI) all show a higher average spin rate. This makes sense as the harder to hit pitches will tend to have higher spin rates. Some high outliers are present, with some reaching over 6000 rpm. These are likely the result of data artifacts: errors in measurement/the data collection system.
+
+### Just looking at 2 strike counts
+
+```{r}
+# filter where there are 2 strikes
+two_strike_df <- pitch_df %>% filter(s_count == 2)
+
+# pitch type usage in 2-strike counts
+ggplot(two_strike_df, aes(x = pitch_type)) +
+  geom_bar(fill = "dodgerblue") +
+  labs(title = "Pitch Type Usage with 2 Strikes", x = "Pitch Type", y = "Count") +
+  theme_minimal()
+
+```
+
+This bar chart shows the frequency of different pitch types thrown with two strikes on the board. The most common pitch by far is the four-seam fastball, followed by sliders. This makes sense, as the pitcher will be trying to throw harder, more competitive pitches to trigger the third strike.
+
+# 6. Modeling
+
+## 6.1 Prepare Data
+
+```{r}
+install.packages("rpart", repos = "https://cloud.r-project.org")
+library(tidyverse)
+library(rpart)
+library(randomForest)
+```
+
+```{r}
+#pull out the variables we want for the model
+model_vars <- c(
+  "nasty","travel_time",
+  "spin_rate","spin_dir","break_angle","break_length",
+  "vx0","vy0","vz0","pfx_x","pfx_z","x0","z0",
+  "b_count","s_count","outs","zone",
+  "start_speed","pitch_type"
+)
+
+#set up our model df
+df_mod <- pitch_df |>
+  select(all_of(model_vars)) |>
+  mutate(pitch_type = factor(pitch_type)) |>
+  drop_na()
+
+#create our train test split of 80/20
+set.seed(42)
+train_flag <- runif(nrow(df_mod)) < .8
+train_df   <- df_mod[train_flag, ]
+test_df    <- df_mod[!train_flag, ]
+
+
+# helper to build X-matrix quickly, turns df into numeric design
+make_X <- function(data, y) {
+  model.matrix(reformulate(setdiff(colnames(data), y), response = NULL), data)[ , -1]
+}
+```
+
+## 6.2 Linear Regression - Predict Start Speed
+
+```{r}
+# make X df
+X_train <- make_X(train_df, "start_speed")
+X_test  <- make_X(test_df,  "start_speed")
+
+#predict
+lm_mod  <- lm(start_speed ~ ., data = train_df)
+lm_pred <- predict(lm_mod, newdata = test_df)
+
+#store results for later
+lm_rmse <- sqrt(mean((lm_pred - test_df$start_speed)^2))
+lm_mae  <- mean(abs(lm_pred - test_df$start_speed))
+
+```
+
+## 6.3 Random-Forest Regression
+
+```{r}
+install.packages("randomForest", repos = "https://cloud.r-project.org")
+```
+
+```{r}
+library(randomForest)
+
+set.seed(42)
+
+# we need to work on a subset since our dataset is too big, we will do 200,000
+sample_rows <- sample(seq_len(nrow(X_train)), 200000) 
+
+#set up rf reg, default params
+rf_reg <- randomForest(
+  x        = X_train[sample_rows, ],
+  y        = train_df$start_speed[sample_rows],
+  ntree    = 200,                              
+  mtry     = floor(sqrt(ncol(X_train))),
+  sampsize = 50000                             
+)
+
+#predict and store results for later
+rf_pred <- predict(rf_reg, X_test)
+rf_rmse <- sqrt(mean((rf_pred - test_df$start_speed)^2))
+rf_mae  <- mean(abs(rf_pred - test_df$start_speed))
+
+```
+
+## 6.4 Pitch-type classification
+
+```{r}
+library(randomForest)
+set.seed(42)
+
+# subset of dataset with equal pull from predictor class
+train_sub <- train_df %>%                  
+  group_by(pitch_type) %>% 
+  sample_n(size = pmin(15000, n()),        
+           replace = FALSE) %>%
+  ungroup()                                
+
+# set up classification model, default params
+rf_cls <- randomForest(
+  pitch_type ~ .,
+  data      = train_sub,
+  ntree     = 200,
+  mtry      = floor(sqrt(ncol(train_sub) - 2)),
+  sampsize  = 5000          
+)
+
+#predict
+cls_pred <- predict(rf_cls, test_df)
+
+#store results
+acc      <- mean(cls_pred == test_df$pitch_type)
+conf_mat <- table(Predicted = cls_pred,
+                  Actual    = test_df$pitch_type)
+
+cat("Classification accuracy (sampled RF):", round(acc, 3), "\n")
+print(conf_mat)
+
+```
+
+## 6.5 Results Summary
+
+```{r}
+cat("Regression metrics\n",
+    "  Linear  : RMSE =", round(lm_rmse,2),  " MAE =", round(lm_mae,2), "\n",
+    "  RF      : RMSE =", round(rf_rmse,2),  " MAE =", round(rf_mae,2), "\n\n")
+
+cat("Classification accuracy (Random Forest):", round(acc,3), "\n")
+print(conf_mat)
+```
+
+The forest reduces regression MAE by 36 % relative to a linear baseline, indicating clear non-linear effects among spin, movement, and release metrics.
+
+For classification, a memory-capped forest trained on \~250 K stratified pitches achieves 68 % accuracy; confusion shows most errors arise from visually similar pitch families (cutter vs four-seam, sinker vs two-seam). These results set our Week 4 baselines
+
+## 7 Model Evaluation
+
+```{r}
+install.packages("yardstick", repos = "https://cloud.r-project.org")
+
+```
+
+```{r}
+# evaluation libs
+library(caret)
+library(yardstick)
+library(dplyr)
+
+# confusion matrix
+conf_matrix <- confusionMatrix(cls_pred, test_df$pitch_type)
+print(conf_matrix)
+
+# get metrics
+eval_df <- data.frame(
+  truth = test_df$pitch_type,
+  prediction = cls_pred
+)
+
+# evaluation metrics
+accuracy_val  <- accuracy(eval_df, truth = truth, estimate = prediction)
+precision_val <- precision(eval_df, truth = truth, estimate = prediction, estimator = "macro")
+recall_val    <- recall(eval_df, truth = truth, estimate = prediction, estimator = "macro")
+f1_val        <- f_meas(eval_df, truth = truth, estimate = prediction, estimator = "macro")
+
+# display all 
+bind_rows(accuracy_val, precision_val, recall_val, f1_val)
+
+```
+
+```{r}
+# convert raw confusion matrix to data frame
+cf_df <- as.data.frame(conf_mat)
+colnames(cf_df) <- c("Predicted", "Actual", "Freq")
+
+# plot heatmap
+ggplot(cf_df, aes(x = Actual, y = Predicted, fill = Freq)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "red") +
+  labs(title = "Confusion Matrix - Pitch Type Classification",
+       x = "Actual Pitch Type",
+       y = "Predicted Pitch Type",
+       fill = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+```{r}
+rf_cls$importance
+```
+
+```{r}
+library(ggplot2)
+
+# Predict on test set
+test_df$predicted <- predict(lm_mod, newdata = test_df)
+
+# Plot
+ggplot(test_df, aes(x = predicted, y = start_speed)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  labs(title = "Predicted vs Actual Pitch Speed",
+       x = "Predicted",
+       y = "Actual")
+
+```
+
+```{r}
+test_df$residuals <- test_df$start_speed - test_df$predicted
+
+ggplot(test_df, aes(x = predicted, y = residuals)) +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(title = "Residual Plot", x = "Predicted Pitch Speed", y = "Residuals")
+
+```
+
+```{r}
+ggplot(test_df, aes(x = residuals)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Residuals", x = "Residuals", y = "Count")
+
+```
+
+```{r}
+library(Metrics)
+mae_val <- mae(test_df$start_speed, test_df$predicted)
+rmse_val <- rmse(test_df$start_speed, test_df$predicted)
+
+metrics_df <- data.frame(
+  Metric = c("MAE", "RMSE"),
+  Value = c(mae_val, rmse_val)
+)
+
+ggplot(metrics_df, aes(x = Metric, y = Value, fill = Metric)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Model Evaluation Metrics", y = "Value") +
+  theme_minimal()
+
+```
+
+```{r}
+library(caret)
+
+predicted_class <- predict(rf_cls, newdata = test_df, type = "class")
+confusionMatrix(predicted_class, test_df$pitch_type)
+
+```
+
+```{r}
+library(randomForest)
+
+importance_df <- data.frame(Feature = rownames(importance(rf_cls)),
+                            Importance = importance(rf_cls)[,1])
+
+ggplot(importance_df, aes(x = reorder(Feature, Importance), y = Importance)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Feature Importance", x = "Feature", y = "Mean Decrease in Gini")
+
+```

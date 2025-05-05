@@ -1,0 +1,28 @@
+# RStudio junk
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Data files you don't want in Git
+pitches.csv
+
+# Quarto hidden folder
+.quarto/
+
+# Quarto output folders (this is key!)
+_site/
+*.html
+*.pdf
+*.docx
+
+# Figures/output images
+*.png
+*.jpg
+*.jpeg
+*.svg
+
+# MacOS metadata
+.DS_Store
+.RDataTmp
